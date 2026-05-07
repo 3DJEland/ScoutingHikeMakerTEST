@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Scouting Route Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── top bar ── */
+#topbar{height:36px;background:#fff;border-bottom:0.5px solid rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:space-between;padding:0 12px;flex-shrink:0;position:relative;z-index:100}
+#files-btn{background:transparent;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;padding:4px 10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:#1a1a1a;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background .1s}
+#files-btn:hover{background:#f5f4f0}
+#files-btn svg{width:12px;height:12px;transition:transform .15s}
+#files-btn.open svg{transform:rotate(180deg)}
+#topbar-tagline{font-size:11px;color:#aaa;font-style:italic}
+
+/* dropdown */
+#files-dropdown{position:absolute;top:40px;left:12px;background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.08);min-width:160px;overflow:hidden;display:none;z-index:200}
+#files-dropdown.open{display:block}
+.dd-item{display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:13px;color:#1a1a1a;cursor:pointer;transition:background .1s;border:none;background:transparent;width:100%;text-align:left;font-family:'DM Sans',sans-serif}
+.dd-item:hover{background:#f5f4f0}
+.dd-item svg{width:14px;height:14px;flex-shrink:0;opacity:0.5}
+.dd-divider{height:0.5px;background:rgba(0,0,0,0.08);margin:3px 0}
+
+/* ── main layout ── */
+#app{display:flex;flex:1;min-height:0}
+#techbar{width:200px;border-right:0.5px solid rgba(0,0,0,0.12);background:#fff;padding:1.25rem .9rem;position:sticky;top:0;height:calc(100vh - 36px);overflow-y:auto;flex-shrink:0}
+.tb-head{font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:#888;margin-bottom:.9rem}
+.topt{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;border:0.5px solid transparent;margin-bottom:3px;transition:background .1s}
+.topt:hover{background:#f5f4f0}
+.topt-icon{width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.topt-name{font-size:12px;color:#1a1a1a;line-height:1.3}
+#main{flex:1;padding:2rem 1.75rem 4rem;min-width:0;overflow-y:auto}
+.header{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:0.5px solid rgba(0,0,0,0.12)}
+.t-title{font-family:'DM Serif Display',serif;font-size:30px;background:transparent;border:none;outline:none;color:#1a1a1a;width:100%;display:block;margin-bottom:.4rem}
+.t-title::placeholder,.t-sub::placeholder{color:#bbb}
+.t-sub{font-size:14px;background:transparent;border:none;outline:none;color:#666;width:100%;display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,100px);grid-auto-rows:1px;column-gap:10px;row-gap:0;grid-auto-flow:dense}
+.card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:8px;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100px;height:100px;flex-shrink:0;align-self:start;transition:border-color .12s;overflow:visible;grid-row:span 110}
+.card.resizable{overflow:visible}
+.rh-r{position:absolute;top:50%;transform:translateY(-50%);right:-5px;width:6px;height:32px;cursor:ew-resize;z-index:10;border-radius:3px;background:rgba(0,0,0,0.15);transition:background .15s}
+.rh-b{position:absolute;left:50%;transform:translateX(-50%);bottom:-5px;height:6px;width:32px;cursor:ns-resize;z-index:10;border-radius:3px;background:rgba(0,0,0,0.15);transition:background .15s}
+.rh-c{position:absolute;bottom:4px;right:4px;width:14px;height:14px;cursor:se-resize;z-index:11;opacity:0.4;transition:opacity .15s}
+.rh-r:hover{background:rgba(55,138,221,0.7) !important}
+.rh-b:hover{background:rgba(55,138,221,0.7) !important}
+.rh-c:hover{opacity:0.9 !important}
+.card:hover{border-color:rgba(0,0,0,0.25)}
+.card.sel{border:1.5px solid #378ADD;background:#e6f1fb}
+.num{position:absolute;top:6px;left:8px;font-size:11px;font-weight:500;color:#aaa}
+.icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center}
+.add-btn{margin-top:12px;background:transparent;border:0.5px dashed rgba(0,0,0,0.25);border-radius:10px;padding:9px 18px;font-family:'DM Sans',sans-serif;font-size:13px;color:#666;cursor:pointer;transition:background .12s}
+.add-btn:hover{background:#eee}
+#detail{width:260px;border-left:0.5px solid rgba(0,0,0,0.12);background:#fff;padding:1.25rem 1rem;position:sticky;top:0;height:calc(100vh - 36px);overflow-y:auto;flex-shrink:0}
+.d-head{font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:#aaa;margin-bottom:.9rem}
+.d-hint{font-size:12px;color:#aaa;line-height:1.5}
+.d-stepnum{font-size:11px;color:#aaa;margin-bottom:.4rem}
+.d-tname{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:.9rem}
+.div{height:0.5px;background:rgba(0,0,0,0.1);margin:.9rem 0}
+.del-btn{width:100%;background:transparent;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;padding:7px;font-family:'DM Sans',sans-serif;font-size:12px;color:#666;cursor:pointer}
+.del-btn:hover{background:#f5f4f0}
+.sec-label{font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:#aaa;margin-bottom:6px;margin-top:2px}
+.dir-ring{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px}
+.dir-cell{aspect-ratio:1;border-radius:8px;border:0.5px solid rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer;background:#f5f4f0;transition:background .1s}
+.dir-cell:hover{border-color:rgba(0,0,0,0.25)}
+.dir-cell.active{background:#e6f1fb;border-color:#378ADD}
+.dir-cell.disabled{opacity:0.2;cursor:default;pointer-events:none}
+.dir-cell.empty{border:none;background:transparent;cursor:default}
+.g-card{display:flex;align-items:center;justify-content:center;width:52px;height:52px}
+.g-card span{font-family:'DM Serif Display',serif;font-size:14px;line-height:1;color:#1a1a1a;text-align:center}
+.g-input{width:100%;background:#f5f4f0;border:0.5px solid rgba(0,0,0,0.12);border-radius:10px;padding:14px 10px;font-family:'DM Serif Display',serif;font-size:36px;color:#1a1a1a;outline:none;text-align:center;letter-spacing:.05em}
+.g-input:focus{border-color:#378ADD}
+.om-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.12);background:#f5f4f0;cursor:pointer;margin-bottom:8px;transition:background .1s;font-family:'DM Sans',sans-serif}
+.om-btn:hover{background:#fff;border-color:rgba(0,0,0,0.2)}
+.om-btn.active{background:#e6f1fb;border-color:#378ADD}
+.om-check{width:16px;height:16px;border-radius:3px;border:1.5px solid rgba(0,0,0,0.25);flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff}
+.om-btn.active .om-check{background:#378ADD;border-color:#378ADD}
+.om-check-tick{display:none;width:10px;height:10px}
+.om-btn.active .om-check-tick{display:block}
+.om-label{font-size:13px;color:#1a1a1a;flex:1;text-align:left}
+.om-tag{font-family:'DM Serif Display',serif;font-size:12px;font-weight:500;padding:2px 7px;border-radius:4px;background:#e6f1fb;color:#185FA5}
+.om-btn.active .om-tag{background:#378ADD;color:white}
+.heli-arrow-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.heli-arrow-label{font-size:12px;font-weight:500;color:#378ADD;width:20px;flex-shrink:0;text-align:center}
+.heli-deg-input{flex:1;background:#f5f4f0;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;padding:6px 8px;font-family:'DM Serif Display',serif;font-size:18px;color:#1a1a1a;outline:none;text-align:center}
+.heli-deg-input:focus{border-color:#378ADD}
+.heli-deg-sym{font-size:13px;color:#aaa;flex-shrink:0}
+.count-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.count-btn{width:26px;height:26px;border:0.5px solid rgba(0,0,0,0.12);border-radius:6px;background:#f5f4f0;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#1a1a1a}
+.count-btn:hover{background:#fff;border-color:rgba(0,0,0,0.25)}
+.count-num{font-size:13px;font-weight:500;color:#1a1a1a;min-width:16px;text-align:center}
+.strip-side-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.strip-side-label{font-size:12px;color:#666}
+.eye-dir-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.eye-dir-cell{aspect-ratio:1;border-radius:8px;border:0.5px solid rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer;background:#f5f4f0;transition:background .1s}
+.eye-dir-cell:hover{border-color:rgba(0,0,0,0.25)}
+.eye-dir-cell.active{background:#e6f1fb;border-color:#378ADD}
+#junc-canvas-wrap{position:relative;width:200px;height:200px;margin:0 auto 12px;border-radius:10px;border:0.5px solid rgba(0,0,0,0.12);background:#f5f4f0;flex-shrink:0}
+#junc-canvas{display:block;border-radius:10px}
+.junc-street-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,0.08)}
+.junc-street-row:last-child{border-bottom:none}
+.junc-street-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.junc-street-label{font-size:12px;color:#666;flex:1}
+.junc-arrow-check{width:16px;height:16px;cursor:pointer;flex-shrink:0;accent-color:#378ADD}
+.junc-add-btn{width:100%;background:transparent;border:0.5px dashed rgba(0,0,0,0.2);border-radius:8px;padding:6px;font-family:'DM Sans',sans-serif;font-size:12px;color:#666;cursor:pointer;margin-top:8px}
+.junc-add-btn:hover{background:#f5f4f0}
+.junc-del-btn{width:18px;height:18px;border:none;background:transparent;cursor:pointer;color:#aaa;font-size:14px;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.junc-del-btn:hover{color:#1a1a1a}
+
+/* export overlay */
+#export-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;align-items:center;justify-content:center}
+#export-overlay.show{display:flex}
+#export-box{background:#fff;border-radius:14px;padding:0;width:620px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+#export-box h3{font-family:'DM Serif Display',serif;font-size:18px;margin:0}
+.exp-head{padding:20px 24px 16px;border-bottom:0.5px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:space-between}
+.exp-close{background:transparent;border:none;font-size:18px;cursor:pointer;color:#aaa;line-height:1;padding:0}
+.exp-close:hover{color:#1a1a1a}
+.exp-body{display:flex;flex:1;min-height:0;overflow:hidden}
+.exp-settings{width:180px;flex-shrink:0;padding:18px 16px;border-right:0.5px solid rgba(0,0,0,0.1);display:flex;flex-direction:column;gap:14px}
+.exp-preview{flex:1;padding:16px;overflow-y:auto;background:#f5f4f0}
+.exp-foot{padding:14px 20px;border-top:0.5px solid rgba(0,0,0,0.1);display:flex;gap:8px;justify-content:flex-end}
+.exp-lbl{font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:#aaa;margin-bottom:6px}
+.exp-cols-row{display:flex;gap:6px;flex-wrap:wrap}
+.exp-col-btn{width:34px;height:34px;border-radius:7px;border:0.5px solid rgba(0,0,0,0.15);background:#f5f4f0;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:#1a1a1a;transition:background .1s}
+.exp-col-btn:hover{background:#e6f1fb;border-color:#378ADD}
+.exp-col-btn.active{background:#378ADD;border-color:#378ADD;color:white}
+.exp-dl-btn{padding:9px 20px;border-radius:8px;border:none;background:#378ADD;color:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer}
+.exp-dl-btn:hover{background:#185FA5}
+.exp-cancel-btn{padding:9px 16px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;color:#666;cursor:pointer}
+.exp-cancel-btn:hover{background:#f5f4f0}
+#exp-preview-grid{display:grid;gap:6px}
+.exp-card{background:#fff;border-radius:8px;border:0.5px solid rgba(0,0,0,0.12);position:relative;overflow:hidden}
+.exp-card-num{position:absolute;top:4px;left:5px;font-size:9px;font-weight:700;color:#555;font-family:'DM Sans',sans-serif;z-index:2;line-height:1}
+.exp-card img{display:block;width:100%;height:100%;object-fit:contain;padding:6px}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div style="position:relative">
+    <button id="files-btn" onclick="toggleDD()">
+      Files
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,4 6,8 10,4"/></svg>
+    </button>
+    <div id="files-dropdown">
+      <button class="dd-item" onclick="fileNew()">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="2" y="1" width="8" height="11" rx="1.5"/><line x1="4" y1="5" x2="8" y2="5"/><line x1="4" y1="7.5" x2="8" y2="7.5"/></svg>
+        Nieuw
+      </button>
+      <div class="dd-divider"></div>
+      <button class="dd-item" onclick="fileSave()">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 2h8l2 2v8a1 1 0 01-1 1H3a1 1 0 01-1-1V2z"/><rect x="4" y="8" width="6" height="4" rx="0.5"/><rect x="4" y="2" width="5" height="3" rx="0.5"/></svg>
+        Opslaan
+      </button>
+      <button class="dd-item" onclick="fileOpen()">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M1 4h5l1.5 2H13v6H1z"/></svg>
+        Openen
+      </button>
+      <div class="dd-divider"></div>
+      <button class="dd-item" onclick="fileExport()">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M7 1v8M4 6l3 3 3-3"/><path d="M2 10v2h10v-2"/></svg>
+        Exporteren als PDF
+      </button>
+    </div>
+  </div>
+  <span id="topbar-tagline">Made by scouts for scouts</span>
+</div>
+
+<!-- hidden file input for Open -->
+<input type="file" id="file-input" accept=".json" style="display:none" onchange="handleOpen(this)"/>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div id="techbar">
+    <div style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:0.5px solid rgba(0,0,0,0.1)">
+      <p class="tb-head" style="margin-bottom:8px">Aantal stappen</p>
+      <div style="display:flex;gap:5px;align-items:center">
+        <button onclick="setTotalStepsDirect(steps.length-1)" style="width:28px;height:28px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.15);background:#f5f4f0;font-size:15px;cursor:pointer;font-family:'DM Sans',sans-serif;color:#1a1a1a;flex-shrink:0">−</button>
+        <input type="text" inputmode="numeric" maxlength="3" id="total-count"
+          style="flex:1;min-width:0;text-align:center;background:#f5f4f0;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;padding:5px 4px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:#1a1a1a;outline:none"
+          onfocus="this.select()" oninput="this.value=this.value.replace(/\D/g,'')" onblur="setTotalSteps(this)" onkeydown="if(event.key==='Enter')this.blur()" value="0"/>
+        <button onclick="setTotalStepsDirect(steps.length+1)" style="width:28px;height:28px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.15);background:#f5f4f0;font-size:15px;cursor:pointer;font-family:'DM Sans',sans-serif;color:#1a1a1a;flex-shrink:0">+</button>
+      </div>
+    </div>
+    <p class="tb-head">Technieken</p><div id="techList"></div>
+  </div>
+  <div id="main">
+    <div class="header">
+      <input class="t-title" id="rTitle" placeholder="Naam van de route…"/>
+      <input class="t-sub" id="rSub" placeholder="Korte omschrijving…"/>
+    </div>
+    <div class="grid" id="grid"></div>
+    <button class="add-btn" id="addBtn">+ stap toevoegen</button>
+  </div>
+  <div id="detail"><p class="d-head">Aanpassen</p><div id="detailInner"></div></div>
+</div>
+
+<!-- Export overlay -->
+<div id="export-overlay">
+  <div id="export-box">
+    <div class="exp-head">
+      <h3>Exporteren als PDF</h3>
+      <button class="exp-close" onclick="closeExport()">×</button>
+    </div>
+    <div class="exp-body">
+      <div class="exp-settings">
+        <div>
+          <div class="exp-lbl">Stappen per rij</div>
+          <div class="exp-cols-row">
+            <button class="exp-col-btn" onclick="setExpCols(2)">2</button>
+            <button class="exp-col-btn" onclick="setExpCols(3)">3</button>
+            <button class="exp-col-btn active" onclick="setExpCols(4)">4</button>
+            <button class="exp-col-btn" onclick="setExpCols(5)">5</button>
+            <button class="exp-col-btn" onclick="setExpCols(6)">6</button>
+          </div>
+        </div>
+      </div>
+      <div class="exp-preview">
+        <div class="exp-lbl" style="margin-bottom:10px">Voorbeeld</div>
+        <div id="exp-preview-grid"></div>
+      </div>
+    </div>
+    <div class="exp-foot">
+      <button class="exp-cancel-btn" onclick="closeExport()">Annuleren</button>
+      <button class="exp-dl-btn" onclick="doExport()">PDF downloaden</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const TICK_SVG=`<svg class="om-check-tick" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+// ── dropdown ──────────────────────────────────────────────────────────────────
+function toggleDD(){
+  const dd=document.getElementById('files-dropdown');
+  const btn=document.getElementById('files-btn');
+  const open=dd.classList.toggle('open');
+  btn.classList.toggle('open',open);
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#files-btn')&&!e.target.closest('#files-dropdown')){
+    document.getElementById('files-dropdown').classList.remove('open');
+    document.getElementById('files-btn').classList.remove('open');
+  }
+});
+
+// ── NEW ───────────────────────────────────────────────────────────────────────
+function fileNew(){
+  if(steps.length>0&&!confirm('Nieuwe route maken? Niet-opgeslagen wijzigingen gaan verloren.'))return;
+  steps=[];sel=null;
+  document.getElementById('rTitle').value='';
+  document.getElementById('rSub').value='';
+  render();renderD();
+  toggleDD();
+}
+
+// ── SAVE ─────────────────────────────────────────────────────────────────────
+function fileSave(){
+  const data={
+    title:document.getElementById('rTitle').value||'',
+    subtitle:document.getElementById('rSub').value||'',
+    steps:steps
+  };
+  const json=JSON.stringify(data,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');
+  const title=data.title.trim()||'route';
+  const slug=title.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  a.href=URL.createObjectURL(blob);
+  a.download=`${slug}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toggleDD();
+}
+
+// ── OPEN ─────────────────────────────────────────────────────────────────────
+function fileOpen(){
+  document.getElementById('file-input').value='';
+  document.getElementById('file-input').click();
+  toggleDD();
+}
+function handleOpen(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      document.getElementById('rTitle').value=data.title||'';
+      document.getElementById('rSub').value=data.subtitle||'';
+      steps=deepCopy(data.steps||[]);
+      sel=null;
+      render();renderD();
+    }catch(err){alert('Kon het bestand niet openen. Controleer of het een geldig .json bestand is.');}
+  };
+  reader.readAsText(file);
+}
+
+// ── EXPORT ───────────────────────────────────────────────────────────────────
+let expCols=4;
+let _expPngs=null;
+
+function setExpCols(n){
+  expCols=n;
+  document.querySelectorAll('.exp-col-btn').forEach(b=>b.classList.toggle('active',parseInt(b.textContent)===n));
+  renderExpPreview();
+}
+
+function renderExpPreview(){
+  const container=document.getElementById('exp-preview-grid');
+  if(!container||!_expPngs)return;
+
+  // A4 proportions: 210x297mm. Preview width = container width.
+  const previewW=container.parentElement.clientWidth-32;
+  const previewH=Math.round(previewW*(297/210));
+  const scale=previewW/210; // px per mm
+
+  // Same constants as doExport
+  const pageW=210,marginL=16,marginR=16,marginT=20;
+  const cols=expCols,colGap=5,rowGap=5;
+  const colW=Math.floor((pageW-marginL-marginR-(cols-1)*colGap)/cols);
+
+  function spanC(s){const isR=s.tid==='helicopter'||s.tid==='stripkaart';if(!isR)return 1;return Math.max(1,Math.round(((s.card_w||100)+10)/110));}
+  function spanR(s){const isR=s.tid==='helicopter'||s.tid==='stripkaart';if(!isR)return 1;return Math.max(1,Math.round(((s.card_h||100)+10)/110));}
+
+  // build same 2D occupancy grid
+  const MAX_ROWS=200;
+  const occ=Array.from({length:MAX_ROWS},()=>new Array(cols).fill(false));
+  function findPlace(sc,sr){for(let r=0;r<MAX_ROWS-sr;r++){for(let c=0;c<=cols-sc;c++){let ok=true;outer:for(let dr=0;dr<sr;dr++){for(let dc=0;dc<sc;dc++){if(occ[r+dr][c+dc]){ok=false;break outer;}}}if(ok)return{r,c};}}return{r:0,c:0};}
+  function occupy(r,c,sc,sr){for(let dr=0;dr<sr;dr++)for(let dc=0;dc<sc;dc++)occ[r+dr][c+dc]=true;}
+
+  const placements=steps.map(s=>{const sc=spanC(s),sr=spanR(s);const{r,c}=findPlace(sc,sr);occupy(r,c,sc,sr);return{r,c,sc,sr};});
+
+  // render as HTML on a white A4 surface
+  container.innerHTML='';
+  const page=document.createElement('div');
+  page.style.cssText=`position:relative;width:${previewW}px;height:${previewH}px;background:white;border-radius:4px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.15)`;
+
+  // title area
+  const titleEl=document.createElement('div');
+  const t=document.getElementById('rTitle').value||'Route';
+  const sub=document.getElementById('rSub').value||'';
+  titleEl.style.cssText=`position:absolute;left:${marginL*scale}px;top:${10*scale}px;font-family:'DM Serif Display',serif;font-size:${Math.round(7*scale)}px;font-weight:bold;color:#1a1a1a;white-space:nowrap;overflow:hidden`;
+  titleEl.textContent=t;
+  page.appendChild(titleEl);
+  if(sub){const subEl=document.createElement('div');subEl.style.cssText=`position:absolute;left:${marginL*scale}px;top:${18*scale}px;font-family:'DM Sans',sans-serif;font-size:${Math.round(3.5*scale)}px;color:#666`;subEl.textContent=sub;page.appendChild(subEl);}
+
+  // divider
+  const div=document.createElement('div');
+  const divY=sub?26:18;
+  div.style.cssText=`position:absolute;left:${marginL*scale}px;right:${marginR*scale}px;top:${divY*scale}px;height:0.5px;background:#ddd`;
+  page.appendChild(div);
+
+  const startY=(divY+6)*scale;
+  const rowUnitPx=(colW+rowGap)*scale;
+  const rowsPerPage=Math.floor((previewH-startY-marginL*scale)/rowUnitPx);
+
+  placements.forEach((p,i)=>{
+    const s=steps[i];
+    const sc=p.sc,sr=p.sr;
+    const wMm=sc*colW+(sc-1)*colGap;
+    const hMm=sr*colW+(sr-1)*rowGap;
+    const px=(marginL+p.c*(colW+colGap))*scale;
+    const py=startY+(p.r%rowsPerPage)*rowUnitPx;
+
+    if(p.r>=rowsPerPage)return; // skip overflow for preview (first page only)
+
+    const card=document.createElement('div');
+    card.style.cssText=`position:absolute;left:${px}px;top:${py}px;width:${wMm*scale}px;height:${hMm*scale}px;border-radius:${2*scale}px;overflow:hidden`;
+
+    const numEl=document.createElement('div');
+    numEl.style.cssText=`position:absolute;top:${2*scale}px;left:${2*scale}px;font-size:${Math.max(7,2.5*scale)}px;font-weight:700;color:#555;font-family:'DM Sans',sans-serif;z-index:2;line-height:1`;
+    numEl.textContent=String(i+1);
+    card.appendChild(numEl);
+
+    if(_expPngs[i]){
+      const img=document.createElement('img');
+      img.src=_expPngs[i];
+      img.style.cssText=`position:absolute;inset:${3*scale}px;width:calc(100% - ${6*scale}px);height:calc(100% - ${6*scale}px);object-fit:contain`;
+      card.appendChild(img);
+    }
+    page.appendChild(card);
+  });
+
+  container.appendChild(page);
+}
+
+function fileExport(){
+  document.getElementById('export-overlay').classList.add('show');
+  // pre-render icons for preview
+  const iconPx=120;
+  Promise.all(steps.map(s=>{
+    let svg='';
+    if(s.tid==='bolletje') svg=bolSvg(s.dir_angle||0,iconPx);
+    else if(s.tid==='kruispunt') svg=juncSvgCard(s.junc_streets||[],iconPx);
+    else if(s.tid==='graden'){const pad=String(Math.max(1,Math.min(360,s.graden||360))).padStart(3,'0');const suf=s.oost_om?' OO':s.west_om?' WO':'';svg=`<svg width="${iconPx}" height="${iconPx}" viewBox="0 0 ${iconPx} ${iconPx}" fill="none" xmlns="http://www.w3.org/2000/svg"><text x="${iconPx/2}" y="${iconPx/2+8}" text-anchor="middle" font-size="22" font-family="Georgia,serif" font-weight="bold" fill="#534AB7">${pad}°${suf}</text></svg>`;}
+    else if(s.tid==='helicopter') svg=heliSvg(s.arrows||[{deg:45},{deg:135}],iconPx);
+    else if(s.tid==='oogjes') svg=eyeForDir(s.eye_dir||'rechts',iconPx);
+    else if(s.tid==='stripkaart') svg=stripSvg(s.strip_steps||[{left:1,right:0}],iconPx,null);
+    else if(s.tid==='foto'){
+      if(!s.foto_data) return Promise.resolve(null);
+      return new Promise(resolve=>{
+        const img=new Image();
+        img.onload=()=>{
+          const c=document.createElement('canvas');
+          c.width=img.naturalWidth;c.height=img.naturalHeight;
+          const ctx=c.getContext('2d');
+          let filter='';
+          if(s.foto_blur>0){
+            const displayW=s.card_w||100;
+            const scale=img.naturalWidth/displayW;
+            filter+=`blur(${(s.foto_blur*scale).toFixed(1)}px) `;
+          }
+          if(s.foto_bw) filter+='grayscale(1) ';
+          if(s.foto_color) filter+='hue-rotate(120deg) saturate(3) ';
+          if(filter) ctx.filter=filter.trim();
+          if(s.foto_mirror){ctx.translate(c.width,0);ctx.scale(-1,1);}
+          ctx.drawImage(img,0,0);
+          resolve(c.toDataURL('image/png'));
+        };
+        img.src=s.foto_data;
+      });
+    }
+    if(svg&&!svg.includes('xmlns')) svg=svg.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+    return svg?svgToPng(svg,iconPx,iconPx):Promise.resolve(null);
+  })).then(pngs=>{
+    _expPngs=pngs;
+    setTimeout(renderExpPreview,50);
+  });
+  toggleDD();
+}
+function closeExport(){document.getElementById('export-overlay').classList.remove('show');}
+
+// Render an SVG string to a base64 PNG via offscreen canvas
+function svgToPng(svgStr,w,h){
+  return new Promise(resolve=>{
+    const blob=new Blob([svgStr],{type:'image/svg+xml'});
+    const url=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      c.width=w;c.height=h;
+      const ctx=c.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/png'));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve(null);};
+    img.src=url;
+  });
+}
+
+async function doExport(){
+  closeExport();
+  const {jsPDF}=window.jspdf;
+
+  const title=document.getElementById('rTitle').value||'Route';
+  const subtitle=document.getElementById('rSub').value||'';
+  const pageW=210,pageH=297,marginL=16,marginR=16,marginT=20,marginB=18;
+  const cols=expCols;
+  const colGap=5;
+  const colW=Math.floor((pageW-marginL-marginR-(cols-1)*colGap)/cols); // mm per col
+  const rowGap=5;
+
+  // Calculate each step's col/row span based on card_w/card_h
+  // Base cell = 100px on screen. Scale: colW mm = 100px, so 1px = colW/100 mm
+  const pxToMm=colW/100;
+  function stepW(s){
+    const isR=s.tid==='helicopter'||s.tid==='stripkaart';
+    if(!isR)return colW;
+    const w=s.card_w||100;
+    const spanCols=Math.max(1,Math.round((w+10)/110));
+    return spanCols*colW+(spanCols-1)*colGap;
+  }
+  function stepH(s){
+    const isR=s.tid==='helicopter'||s.tid==='stripkaart';
+    if(!isR)return colW; // square default
+    const h=s.card_h||100;
+    const spanRows=Math.max(1,Math.round((h+10)/110));
+    return spanRows*colW+(spanRows-1)*rowGap;
+  }
+  function spanCols(s){
+    const isR=s.tid==='helicopter'||s.tid==='stripkaart';
+    if(!isR)return 1;
+    return Math.max(1,Math.round(((s.card_w||100)+10)/110));
+  }
+
+  // pre-render icons at appropriate size
+  const iconPngs=await Promise.all(steps.map(s=>{
+    const isR=s.tid==='helicopter'||s.tid==='stripkaart';
+    const sc=spanCols(s);
+    const iconPx=Math.round(120*sc);
+    let svg='';
+    if(s.tid==='bolletje') svg=bolSvg(s.dir_angle||0,iconPx);
+    else if(s.tid==='kruispunt') svg=juncSvgCard(s.junc_streets||[],iconPx);
+    else if(s.tid==='graden'){const pad=String(Math.max(1,Math.min(360,s.graden||360))).padStart(3,'0');const suf=s.oost_om?' OO':s.west_om?' WO':'';svg=`<svg width="${iconPx}" height="${iconPx}" viewBox="0 0 ${iconPx} ${iconPx}" fill="none" xmlns="http://www.w3.org/2000/svg"><text x="${iconPx/2}" y="${iconPx/2+8}" text-anchor="middle" font-size="22" font-family="Georgia,serif" font-weight="bold" fill="#534AB7">${pad}°${suf}</text></svg>`;}
+    else if(s.tid==='helicopter') svg=heliSvg(s.arrows||[{deg:45},{deg:135}],iconPx);
+    else if(s.tid==='oogjes') svg=eyeForDir(s.eye_dir||'rechts',iconPx);
+    else if(s.tid==='stripkaart'){
+      // for stripkaart use actual proportions
+      const sw=stepW(s),sh=stepH(s);
+      const ratio=sh/sw;
+      const spx=iconPx,hpx=Math.round(iconPx*ratio);
+      svg=stripSvg(s.strip_steps||[{left:1,right:0}],spx,null);
+      if(svg&&!svg.includes('xmlns')) svg=svg.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+      return svgToPng(svg,spx,hpx);
+    }
+    else if(s.tid==='foto'){
+      if(!s.foto_data) return Promise.resolve(null);
+      // Apply filters via canvas
+      return new Promise(resolve=>{
+        const img=new Image();
+        img.onload=()=>{
+          const c=document.createElement('canvas');
+          c.width=img.naturalWidth;c.height=img.naturalHeight;
+          const ctx=c.getContext('2d');
+          let filter='';
+          if(s.foto_blur>0){
+            const displayW=s.card_w||100;
+            const scale=img.naturalWidth/displayW;
+            filter+=`blur(${(s.foto_blur*scale).toFixed(1)}px) `;
+          }
+          if(s.foto_bw) filter+='grayscale(1) ';
+          if(s.foto_color) filter+='hue-rotate(120deg) saturate(3) ';
+          if(filter) ctx.filter=filter.trim();
+          if(s.foto_mirror){ctx.translate(c.width,0);ctx.scale(-1,1);}
+          ctx.drawImage(img,0,0);
+          resolve(c.toDataURL('image/png'));
+        };
+        img.src=s.foto_data;
+      });
+    }
+    if(svg&&!svg.includes('xmlns')) svg=svg.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+    return svg?svgToPng(svg,iconPx,iconPx):Promise.resolve(null);
+  }));
+
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  let y=marginT;
+
+  // Title
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(22);
+  doc.setTextColor(26,26,26);
+  doc.text(title,marginL,y);
+  y+=9;
+
+  if(subtitle){
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(11);
+    doc.setTextColor(100,100,100);
+    doc.text(subtitle,marginL,y);
+    y+=7;
+    doc.setTextColor(26,26,26);
+  }
+
+  doc.setDrawColor(200,200,200);
+  doc.setLineWidth(0.3);
+  doc.line(marginL,y,pageW-marginR,y);
+  y+=8;
+
+
+  // Use a 2D occupancy grid (like the editor's dense grid) to place steps
+  // Each cell = one colW x colW unit
+  const MAX_ROWS=200;
+  const occupied=Array.from({length:MAX_ROWS},()=>new Array(cols).fill(false));
+
+  function findPlace(sc,sr){
+    for(let r=0;r<MAX_ROWS-sr;r++){
+      for(let c=0;c<=cols-sc;c++){
+        let fits=true;
+        outer: for(let dr=0;dr<sr;dr++){
+          for(let dc=0;dc<sc;dc++){
+            if(occupied[r+dr][c+dc]){fits=false;break outer;}
+          }
+        }
+        if(fits)return{r,c};
+      }
+    }
+    return{r:0,c:0};
+  }
+
+  function occupy(r,c,sc,sr){
+    for(let dr=0;dr<sr;dr++)
+      for(let dc=0;dc<sc;dc++)
+        occupied[r+dr][c+dc]=true;
+  }
+
+  // place all steps
+  const placements=steps.map(s=>{
+    const sc=spanCols(s);
+    const sr=Math.max(1,Math.round(((s.card_h||100)+10)/110));
+    const {r,c}=findPlace(sc,sr);
+    occupy(r,c,sc,sr);
+    return{r,c,sc,sr};
+  });
+
+  // find total rows used
+  const maxRow=Math.max(...placements.map(p=>p.r+p.sr));
+
+  // figure out page breaks: rows per page
+  const contentH=pageH-y-marginB;
+  const rowUnitMm=colW+rowGap;
+
+  // draw each step
+  placements.forEach((p,i)=>{
+    const s=steps[i];
+    const sw=p.sc*colW+(p.sc-1)*colGap;
+    const sh=p.sr*colW+(p.sr-1)*rowGap;
+
+    // calculate y position on page, handling page breaks
+    const totalYmm=p.r*rowUnitMm;
+    const rowsPerPage=Math.floor(contentH/rowUnitMm);
+    const pageNum=Math.floor(p.r/rowsPerPage);
+    const rowOnPage=p.r%rowsPerPage;
+
+    // ensure correct page
+    while(doc.internal.getCurrentPageInfo().pageNumber-1<pageNum) doc.addPage();
+    // set page
+    doc.setPage(pageNum+1);
+
+    const px=marginL+p.c*(colW+colGap);
+    const py=y+rowOnPage*rowUnitMm;
+
+    // step number top-left
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8);
+    doc.setTextColor(80,80,80);
+    doc.text(String(i+1),px+1.5,py+4);
+
+    // icon
+    const imgData=iconPngs[i];
+    if(imgData){
+      doc.addImage(imgData,'PNG',px+2,py+2,sw-4,sh-4);
+    }
+  });
+
+  // footer
+  doc.setFont('helvetica','italic');
+  doc.setFontSize(8);
+  doc.setTextColor(180,180,180);
+  doc.text('Made by scouts for scouts',pageW/2,pageH-8,{align:'center'});
+
+  const slug=(title.replace(/[^a-z0-9]/gi,'_').toLowerCase()||'route');
+  doc.save(`${slug}.pdf`);
+}
+
+// ── SVG helpers ───────────────────────────────────────────────────────────────
+function eyeSvg(angleDeg,sz,isCenter){const W=sz,H=sz,rx=sz*.115,ry=sz*.19,gap=sz*.04,lx=W/2-rx-gap,cx2=W/2+rx+gap,cy=H/2,pupilR=Math.min(rx,ry)*.68,irisR=Math.min(rx,ry)*.95,maxOff=ry*.32,sw=Math.max(1,sz*.045);let pox=0,poy=0;if(!isCenter){const r=angleDeg*(Math.PI/180);pox=Math.sin(r)*maxOff;poy=-Math.cos(r)*maxOff;}const uid=Math.round(sz)+'_'+Math.round(angleDeg||0)+(isCenter?'c':'');let o=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none">`;o+=`<defs><clipPath id="el${uid}"><ellipse cx="${lx}" cy="${cy}" rx="${rx}" ry="${ry}"/></clipPath><clipPath id="er${uid}"><ellipse cx="${cx2}" cy="${cy}" rx="${rx}" ry="${ry}"/></clipPath></defs>`;o+=`<ellipse cx="${lx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="white" stroke="#1a1a1a" stroke-width="${sw}"/>`;o+=`<g clip-path="url(#el${uid})"><circle cx="${(lx+pox).toFixed(1)}" cy="${(cy+poy).toFixed(1)}" r="${irisR.toFixed(1)}" fill="#c8c8c8"/><circle cx="${(lx+pox).toFixed(1)}" cy="${(cy+poy).toFixed(1)}" r="${pupilR.toFixed(1)}" fill="#1a1a1a"/></g>`;o+=`<ellipse cx="${lx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="#1a1a1a" stroke-width="${sw}"/>`;o+=`<ellipse cx="${cx2}" cy="${cy}" rx="${rx}" ry="${ry}" fill="white" stroke="#1a1a1a" stroke-width="${sw}"/>`;o+=`<g clip-path="url(#er${uid})"><circle cx="${(cx2+pox).toFixed(1)}" cy="${(cy+poy).toFixed(1)}" r="${irisR.toFixed(1)}" fill="#c8c8c8"/><circle cx="${(cx2+pox).toFixed(1)}" cy="${(cy+poy).toFixed(1)}" r="${pupilR.toFixed(1)}" fill="#1a1a1a"/></g>`;o+=`<ellipse cx="${cx2}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="#1a1a1a" stroke-width="${sw}"/>`;o+=`</svg>`;return o;}
+const EYE_DIRS=[{id:'links-boven',label:'Links boven',angle:315},{id:'boven',label:'Boven',angle:0},{id:'rechts-boven',label:'Rechts boven',angle:45},{id:'links',label:'Links',angle:270},{id:'midden',label:'Midden',angle:0,center:true},{id:'rechts',label:'Rechts',angle:90},{id:'links-onder',label:'Links onder',angle:225},{id:'onder',label:'Onder',angle:180},{id:'rechts-onder',label:'Rechts onder',angle:135}];
+function eyeForDir(dirId,sz){const d=EYE_DIRS.find(x=>x.id===dirId)||EYE_DIRS[5];return eyeSvg(d.angle,sz,!!d.center);}
+function bolSvg(a,sz,c){c=c||'#378ADD';const cx=sz/2,cy=sz/2,r=a*(Math.PI/180),bR=sz*.10,lL=sz*.38,hL=sz*.13,hW=sz*.08,bx=cx-Math.sin(r)*sz*.15,by=cy+Math.cos(r)*sz*.15,tx=bx+Math.sin(r)*lL,ty=by-Math.cos(r)*lL,ax=tx-Math.sin(r)*hL,ay=ty+Math.cos(r)*hL,w1x=ax+Math.cos(r)*hW,w1y=ay+Math.sin(r)*hW,w2x=ax-Math.cos(r)*hW,w2y=ay-Math.sin(r)*hW;return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" fill="none"><circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${bR.toFixed(1)}" stroke="${c}" stroke-width="1.5" fill="none"/><line x1="${bx.toFixed(1)}" y1="${by.toFixed(1)}" x2="${(tx-Math.sin(r)*hL*.5).toFixed(1)}" y2="${(ty+Math.cos(r)*hL*.5).toFixed(1)}" stroke="${c}" stroke-width="1.5" stroke-linecap="round"/><polygon points="${tx.toFixed(1)},${ty.toFixed(1)} ${w1x.toFixed(1)},${w1y.toFixed(1)} ${w2x.toFixed(1)},${w2y.toFixed(1)}" fill="${c}"/></svg>`;}
+function cSm(deg,sz){const r=deg*(Math.PI/180),cx=sz/2,cy=sz/2,nl=sz*.36,tx=cx+Math.sin(r)*nl,ty=cy-Math.cos(r)*nl,bx=cx-Math.sin(r)*nl*.5,by=cy+Math.cos(r)*nl*.5;return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" fill="none"><circle cx="${cx}" cy="${cy}" r="${(sz*.44).toFixed(1)}" stroke="#534AB7" stroke-width="1.5"/><polygon points="${tx.toFixed(1)},${ty.toFixed(1)} ${(cx+Math.cos(r)*nl*.22).toFixed(1)},${(cy+Math.sin(r)*nl*.22).toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${(cx-Math.cos(r)*nl*.22).toFixed(1)},${(cy-Math.sin(r)*nl*.22).toFixed(1)}" fill="#534AB7"/><polygon points="${(cx-Math.sin(r)*nl*.75).toFixed(1)},${(cy+Math.cos(r)*nl*.75).toFixed(1)} ${(cx+Math.cos(r)*nl*.18).toFixed(1)},${(cy+Math.sin(r)*nl*.18).toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${(cx-Math.cos(r)*nl*.18).toFixed(1)},${(cy-Math.sin(r)*nl*.18).toFixed(1)}" fill="#B4B2A9"/><circle cx="${cx}" cy="${cy}" r="${(sz*.1).toFixed(1)}" fill="white" stroke="#534AB7" stroke-width="1"/></svg>`;}
+function gCard(deg,oo,wo){const n=Math.max(1,Math.min(360,deg||360)),pad=String(n).padStart(3,'0'),suf=oo?' OO':wo?' WO':'';return`<div class="g-card"><span>${pad}°${suf}</span></div>`;}
+function heliSvg(arrows,sz){const cx=sz/2,cy=sz/2,centerR=sz*0.07,aLen=sz*.38,aHead=sz*.085,aHeadW=sz*.05,aLblR=sz*.48,nLen=sz*.44,nHead=sz*.13,nHeadW=sz*.085,nLblR=sz*.56,nStroke=sz*.055;let out='';const ntx=cx,nty=cy-nLen,nabx=cx,naby=cy-nLen+nHead,nw1x=nabx+nHeadW,nw1y=naby,nw2x=nabx-nHeadW,nw2y=naby;out+=`<line x1="${cx}" y1="${cy}" x2="${nabx.toFixed(1)}" y2="${naby.toFixed(1)}" stroke="#1a1a1a" stroke-width="${nStroke.toFixed(1)}" stroke-linecap="round"/>`;out+=`<polygon points="${ntx.toFixed(1)},${nty.toFixed(1)} ${nw1x.toFixed(1)},${nw1y.toFixed(1)} ${nw2x.toFixed(1)},${nw2y.toFixed(1)}" fill="#1a1a1a"/>`;out+=`<text x="${cx}" y="${(cy-nLblR+sz*0.04).toFixed(1)}" text-anchor="middle" font-size="${(sz*0.13).toFixed(1)}" font-family="DM Sans,sans-serif" font-weight="500" fill="#1a1a1a">N</text>`;arrows.forEach((arr,i)=>{const deg=arr.deg||0,r=deg*(Math.PI/180),tx=cx+Math.sin(r)*aLen,ty=cy-Math.cos(r)*aLen,abx=tx-Math.sin(r)*aHead,aby=ty+Math.cos(r)*aHead,w1x=abx+Math.cos(r)*aHeadW,w1y=aby+Math.sin(r)*aHeadW,w2x=abx-Math.cos(r)*aHeadW,w2y=aby-Math.sin(r)*aHeadW;out+=`<line x1="${cx}" y1="${cy}" x2="${abx.toFixed(1)}" y2="${aby.toFixed(1)}" stroke="#378ADD" stroke-width="${(sz*0.025).toFixed(1)}" stroke-linecap="round"/>`;out+=`<polygon points="${tx.toFixed(1)},${ty.toFixed(1)} ${w1x.toFixed(1)},${w1y.toFixed(1)} ${w2x.toFixed(1)},${w2y.toFixed(1)}" fill="#378ADD"/>`;const lx=cx+Math.sin(r)*aLblR,ly=cy-Math.cos(r)*aLblR;out+=`<text x="${lx.toFixed(1)}" y="${(ly+sz*0.035).toFixed(1)}" text-anchor="middle" font-size="${(sz*0.11).toFixed(1)}" font-family="DM Sans,sans-serif" font-weight="500" fill="#378ADD">${i+1}</text>`;});out+=`<circle cx="${cx}" cy="${cy}" r="${(centerR*1.1).toFixed(1)}" fill="white" stroke="#1a1a1a" stroke-width="${(nStroke*.7).toFixed(1)}"/>`;out+=`<circle cx="${cx}" cy="${cy}" r="${(centerR*.45).toFixed(1)}" fill="#1a1a1a"/>`;return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" fill="none">${out}</svg>`;}
+function drawStrip(ss,CX,STEP_H,TICK_LEN,LW,DOT_R,PAD_TOP,PAD_BOT,W,selIdx,clickable,showNumbers){const svgH=PAD_TOP+ss.length*STEP_H+PAD_BOT,dotY=svgH-PAD_BOT,SPREAD=STEP_H*0.55,SW=Math.max(1.2,LW*0.6);let out='';out+=`<line x1="${CX}" y1="${PAD_TOP}" x2="${CX}" y2="${dotY}" stroke="#1a1a1a" stroke-width="${LW}" stroke-linecap="round"/>`;out+=`<circle cx="${CX}" cy="${dotY}" r="${DOT_R}" fill="#1a1a1a"/>`;ss.forEach((step,i)=>{const crossY=dotY-DOT_R*2-(i+0.5)*STEP_H,col=selIdx===i?'#378ADD':'#1a1a1a',lc=step.left||0,rc=step.right||0;if(lc===1){out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${(CX-TICK_LEN).toFixed(1)}" y2="${crossY.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"/>`;}else if(lc>1){for(let l=0;l<lc;l++){const t=l/(lc-1),endY=crossY-SPREAD/2+t*SPREAD;out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${(CX-TICK_LEN).toFixed(1)}" y2="${endY.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"/>`;}}if(rc===1){out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${(CX+TICK_LEN).toFixed(1)}" y2="${crossY.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"/>`;}else if(rc>1){for(let r=0;r<rc;r++){const t=r/(rc-1),endY=crossY-SPREAD/2+t*SPREAD;out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${(CX+TICK_LEN).toFixed(1)}" y2="${endY.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"/>`;}}if(showNumbers){const numCol=selIdx===i?'#378ADD':'#aaa';out+=`<text x="${CX+TICK_LEN+6}" y="${(crossY+4).toFixed(1)}" font-size="${Math.max(8,LW*3.5)}" font-family="DM Sans,sans-serif" font-weight="500" fill="${numCol}">${i+1}</text>`;}if(clickable)out+=`<rect x="0" y="${(crossY-STEP_H/2).toFixed(1)}" width="${W}" height="${STEP_H}" fill="transparent" style="cursor:pointer" onclick="stripPick(${i})"/>`;});return`<svg width="${W}" height="${svgH}" viewBox="0 0 ${W} ${svgH}" fill="none">${out}</svg>`;}
+function stripSvg(ss,sz,si){const sc=sz/140,CX=sz/2,SH=22*sc,TL=22*sc,LW=2.5*sc,DR=5*sc,PT=8*sc,PB=8*sc;return drawStrip(ss,CX,SH,TL,LW,DR,PT,PB,sz,si,false,false);}
+function stripLargeSvg(ss,si){return drawStrip(ss,70,54,30,3,6,24,28,180,si,true,true);}
+
+function juncSvg(streets,sz){
+  const cx=sz/2,cy=sz/2;
+  const roadLen=sz*0.44;
+  const hw=sz*0.085;
+  const lw=Math.max(0.8,sz*0.022);
+  const col='#1a1a1a';
+  const allAngles=[180,...streets.map(s=>s.angle)];
+  const sorted=[...allAngles].sort((a,b)=>((a%360+360)%360)-((b%360+360)%360));
+  const n=sorted.length;
+  function r2v(a){const r=a*Math.PI/180;return{dx:Math.sin(r),dy:-Math.cos(r),px:Math.cos(r),py:Math.sin(r)};}
+  function edgeOuter(a,side){const v=r2v(a),s=side==='L'?1:-1;return{x:cx+v.dx*roadLen+v.px*hw*s,y:cy+v.dy*roadLen+v.py*hw*s};}
+  function edgeLine(a,side){const v=r2v(a),s=side==='L'?1:-1;return{p:{x:cx+v.px*hw*s,y:cy+v.py*hw*s},d:{x:v.dx,y:v.dy}};}
+  function lineIntersect(l1,l2){const cross=l1.d.x*l2.d.y-l1.d.y*l2.d.x;if(Math.abs(cross)<1e-9)return null;const t=((l2.p.x-l1.p.x)*l2.d.y-(l2.p.y-l1.p.y)*l2.d.x)/cross;return{x:l1.p.x+t*l1.d.x,y:l1.p.y+t*l1.d.y};}
+  const innerL=new Array(n),innerR=new Array(n);
+  for(let i=0;i<n;i++){const prev=(i-1+n)%n,next=(i+1)%n;const lL=edgeLine(sorted[i],'L');const lPR=edgeLine(sorted[prev],'R');const lR=edgeLine(sorted[i],'R');const lNL=edgeLine(sorted[next],'L');innerL[i]=lineIntersect(lL,lPR)||lL.p;innerR[i]=lineIntersect(lR,lNL)||lR.p;}
+  let out='';
+  for(let i=0;i<n;i++){const OL=edgeOuter(sorted[i],'L'),OR=edgeOuter(sorted[i],'R');const IL=innerL[i],IR=innerR[i];out+=`<line x1="${IL.x.toFixed(2)}" y1="${IL.y.toFixed(2)}" x2="${OL.x.toFixed(2)}" y2="${OL.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="square"/>`;out+=`<line x1="${IR.x.toFixed(2)}" y1="${IR.y.toFixed(2)}" x2="${OR.x.toFixed(2)}" y2="${OR.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="square"/>`;out+=`<line x1="${OL.x.toFixed(2)}" y1="${OL.y.toFixed(2)}" x2="${OR.x.toFixed(2)}" y2="${OR.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="round"/>`;}
+  for(let i=0;i<n;i++){const p1=innerR[i],p2=innerL[(i+1)%n];const angDiff=((sorted[(i+1)%n]-sorted[i])+360)%360;if(angDiff<=180){out+=`<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="round"/>`;}else{const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;const cdx=mx-cx,cdy=my-cy;const cLen=Math.hypot(cdx,cdy)||1;const pull=hw*0.5;const qx=mx+cdx/cLen*pull,qy=my+cdy/cLen*pull;out+=`<path d="M${p1.x.toFixed(2)},${p1.y.toFixed(2)} Q${qx.toFixed(2)},${qy.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}" fill="none" stroke="${col}" stroke-width="${lw}"/>`;}}
+  out+=`<circle cx="${cx.toFixed(1)}" cy="${(cy+roadLen).toFixed(1)}" r="${(sz*0.045).toFixed(1)}" fill="${col}"/>`;
+  streets.forEach(st=>{if(!st.isArrow)return;const r=st.angle*Math.PI/180,as=sz*0.05,ae=roadLen*0.72;const ax1=cx+Math.sin(r)*as,ay1=cy-Math.cos(r)*as;const ax2=cx+Math.sin(r)*ae,ay2=cy-Math.cos(r)*ae;const hl=sz*0.10,hw2=sz*0.065;const abx=ax2-Math.sin(r)*hl,aby=ay2+Math.cos(r)*hl;const w1x=abx+Math.cos(r)*hw2,w1y=aby+Math.sin(r)*hw2;const w2x=abx-Math.cos(r)*hw2,w2y=aby-Math.sin(r)*hw2;out+=`<line x1="${ax1.toFixed(1)}" y1="${ay1.toFixed(1)}" x2="${abx.toFixed(1)}" y2="${aby.toFixed(1)}" stroke="#378ADD" stroke-width="${(sz*0.025).toFixed(1)}" stroke-linecap="round"/>`;out+=`<polygon points="${ax2.toFixed(1)},${ay2.toFixed(1)} ${w1x.toFixed(1)},${w1y.toFixed(1)} ${w2x.toFixed(1)},${w2y.toFixed(1)}" fill="#378ADD"/>`;});
+  return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" fill="none" xmlns="http://www.w3.org/2000/svg">${out}</svg>`;
+}
+
+function juncSvgCard(streets, sz) {
+  const cx = sz/2, cy = sz/2;
+  const L = sz * 0.42;
+  const hw = sz * 0.09;
+  const lw = Math.max(1, sz * 0.022);
+  const col = '#1a1a1a';
+
+  const all = [{angle:180,isArrow:false}, ...streets];
+  all.sort((a,b)=>((a.angle+360)%360)-((b.angle+360)%360));
+  const n = all.length;
+
+  function roadEdge(a, side) {
+    const r = a * Math.PI / 180;
+    const dx = Math.sin(r), dy = -Math.cos(r);
+    const s = side === 'L' ? 1 : -1;
+    const ox = cx + (-Math.cos(r)) * hw * s;
+    const oy = cy + (-Math.sin(r)) * hw * s;
+    return { ox, oy, dx, dy };
+  }
+
+  function intersect(e1, e2) {
+    const cross = e1.dx*e2.dy - e1.dy*e2.dx;
+    if (Math.abs(cross) < 1e-9) return null;
+    const t = ((e2.ox-e1.ox)*e2.dy - (e2.oy-e1.oy)*e2.dx) / cross;
+    return { x: e1.ox + t*e1.dx, y: e1.oy + t*e1.dy };
+  }
+
+  let out = '';
+
+  for (let i = 0; i < n; i++) {
+    const prev = (i - 1 + n) % n;
+    const next = (i + 1) % n;
+    const a = all[i].angle;
+    const r = a * Math.PI / 180;
+    const dx = Math.sin(r), dy = -Math.cos(r);
+    const px = Math.cos(r), py = Math.sin(r);
+
+    const eL = roadEdge(a, 'L');
+    const eR = roadEdge(a, 'R');
+    const startL = intersect(eL, roadEdge(all[prev].angle, 'R')) || { x: eL.ox, y: eL.oy };
+    const startR = intersect(eR, roadEdge(all[next].angle, 'L')) || { x: eR.ox, y: eR.oy };
+    const tipL = { x: eL.ox + dx*L, y: eL.oy + dy*L };
+    const tipR = { x: eR.ox + dx*L, y: eR.oy + dy*L };
+
+    out += `<line x1="${startL.x.toFixed(2)}" y1="${startL.y.toFixed(2)}" x2="${tipL.x.toFixed(2)}" y2="${tipL.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="butt"/>`;
+    out += `<line x1="${startR.x.toFixed(2)}" y1="${startR.y.toFixed(2)}" x2="${tipR.x.toFixed(2)}" y2="${tipR.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="butt"/>`;
+    out += `<line x1="${tipL.x.toFixed(2)}" y1="${tipL.y.toFixed(2)}" x2="${tipR.x.toFixed(2)}" y2="${tipR.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="round"/>`;
+
+    if (all[i].isArrow) {
+      const ae = L*0.75, hl = sz*0.10, hw2 = sz*0.065;
+      const ax1 = cx+dx*sz*0.05, ay1 = cy+dy*sz*0.05;
+      const ax2 = cx+dx*ae, ay2 = cy+dy*ae;
+      const abx = cx+dx*(ae-hl), aby = cy+dy*(ae-hl);
+      out += `<line x1="${ax1.toFixed(1)}" y1="${ay1.toFixed(1)}" x2="${abx.toFixed(1)}" y2="${aby.toFixed(1)}" stroke="#378ADD" stroke-width="${(sz*0.025).toFixed(1)}" stroke-linecap="round"/>`;
+      out += `<polygon points="${ax2.toFixed(1)},${ay2.toFixed(1)} ${(abx+px*hw2).toFixed(1)},${(aby+py*hw2).toFixed(1)} ${(abx-px*hw2).toFixed(1)},${(aby-py*hw2).toFixed(1)}" fill="#378ADD"/>`;
+    }
+  }
+
+  out += `<circle cx="${cx}" cy="${(cy+L).toFixed(1)}" r="${(sz*0.045).toFixed(1)}" fill="${col}"/>`;
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg">${out}</svg>`;
+}
+
+const CANVAS_SIZE=200,CANVAS_CX=100,CANVAS_CY=100,ROAD_LEN=72;
+let dragIdx=null,dotIdx=null;
+function angleToDot(a){const r=a*(Math.PI/180);return{x:CANVAS_CX+Math.sin(r)*ROAD_LEN,y:CANVAS_CY-Math.cos(r)*ROAD_LEN};}
+function dotToAngle(x,y){return(Math.atan2(x-CANVAS_CX,-(y-CANVAS_CY))*(180/Math.PI)+360)%360;}
+function snapAngle(a){return Math.round(a/15)*15;}
+function drawJuncCanvas(){
+  if(sel===null||!steps[sel]||steps[sel].tid!=='kruispunt')return;
+  const canvas=document.getElementById('junc-canvas');
+  if(!canvas)return;
+  const s=steps[sel],streets=s.junc_streets||[];
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=CANVAS_SIZE*dpr;canvas.height=CANVAS_SIZE*dpr;
+  canvas.style.width=CANVAS_SIZE+'px';canvas.style.height=CANVAS_SIZE+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
+  const isDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const lineCol=isDark?'#e0e0e0':'#1a1a1a';
+
+  // base road (down)
+  ctx.strokeStyle=lineCol;ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(CANVAS_CX,CANVAS_CY);ctx.lineTo(CANVAS_CX,CANVAS_CY+ROAD_LEN);ctx.stroke();
+  ctx.fillStyle=lineCol;ctx.beginPath();ctx.arc(CANVAS_CX,CANVAS_CY+ROAD_LEN,5,0,Math.PI*2);ctx.fill();
+
+  streets.forEach((st,i)=>{
+    const dot=angleToDot(st.angle);
+    ctx.strokeStyle=lineCol;ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(CANVAS_CX,CANVAS_CY);ctx.lineTo(dot.x,dot.y);ctx.stroke();
+    if(st.isArrow){
+      const r=st.angle*(Math.PI/180),as=10,ae=ROAD_LEN*0.78,hl=10,hw=7;
+      const ax1=CANVAS_CX+Math.sin(r)*as,ay1=CANVAS_CY-Math.cos(r)*as;
+      const ax2=CANVAS_CX+Math.sin(r)*ae,ay2=CANVAS_CY-Math.cos(r)*ae;
+      const abx=ax2-Math.sin(r)*hl,aby=ay2+Math.cos(r)*hl;
+      ctx.strokeStyle='#378ADD';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(ax1,ay1);ctx.lineTo(abx,aby);ctx.stroke();
+      ctx.fillStyle='#378ADD';
+      ctx.beginPath();ctx.moveTo(ax2,ay2);ctx.lineTo(abx+Math.cos(r)*hw,aby+Math.sin(r)*hw);ctx.lineTo(abx-Math.cos(r)*hw,aby-Math.sin(r)*hw);ctx.closePath();ctx.fill();
+    }
+    ctx.fillStyle=dotIdx===i?'#378ADD':'#888';
+    ctx.strokeStyle='white';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(dot.x,dot.y,7,0,Math.PI*2);ctx.fill();ctx.stroke();
+  });
+
+  ctx.fillStyle=lineCol;ctx.beginPath();ctx.arc(CANVAS_CX,CANVAS_CY,4,0,Math.PI*2);ctx.fill();
+}
+function juncDown(e){if(sel===null||!steps[sel])return;const streets=steps[sel].junc_streets||[],rect=e.currentTarget.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;let cl=-1,md=15;streets.forEach((st,i)=>{const d=angleToDot(st.angle),dist=Math.hypot(mx-d.x,my-d.y);if(dist<md){md=dist;cl=i;}});if(cl>=0){dragIdx=cl;dotIdx=cl;}}
+function juncMove(e){if(sel===null||!steps[sel])return;const streets=steps[sel].junc_streets||[],rect=e.currentTarget.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;if(dragIdx!==null){steps[sel].junc_streets[dragIdx].angle=snapAngle(dotToAngle(mx,my));drawJuncCanvas();renderStreetList();render();}else{let f=-1;streets.forEach((st,i)=>{const d=angleToDot(st.angle);if(Math.hypot(mx-d.x,my-d.y)<12)f=i;});if(f!==dotIdx){dotIdx=f;drawJuncCanvas();}}}
+function juncUp(){dragIdx=null;}
+function renderStreetList(){const el=document.getElementById('street-list');if(!el||sel===null||!steps[sel])return;const streets=steps[sel].junc_streets||[];el.innerHTML=streets.map((st,i)=>`<div class="junc-street-row"><div class="junc-street-dot" style="background:#378ADD"></div><span class="junc-street-label">Straat ${i+1} — ${Math.round(st.angle)}°</span><label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#aaa;cursor:pointer"><input type="checkbox" class="junc-arrow-check" ${st.isArrow?'checked':''} onchange="toggleArrow(${i},this.checked)"/> pijl</label><button class="junc-del-btn" onclick="delStreet(${i})">×</button></div>`).join('');}
+function toggleArrow(i,v){if(sel===null)return;steps[sel].junc_streets[i].isArrow=v;render();drawJuncCanvas();renderStreetList();}
+function delStreet(i){if(sel===null)return;steps[sel].junc_streets.splice(i,1);render();renderD();}
+function addStreet(){if(sel===null)return;const ex=steps[sel].junc_streets.map(s=>s.angle),cands=[0,45,90,135,225,270,315,30,60,120,150,210,240,300,330];let best=0;for(const c of cands){if(!ex.some(a=>Math.abs(a-c)<20)&&Math.abs(c-180)>20){best=c;break;}}steps[sel].junc_streets.push({angle:best,isArrow:false});render();renderD();setTimeout(()=>{setupJunc();drawJuncCanvas();renderStreetList();},50);}
+function setupJunc(){const c=document.getElementById('junc-canvas');if(!c)return;c.onmousedown=juncDown;c.onmousemove=juncMove;c.onmouseup=juncUp;c.onmouseleave=juncUp;c.ontouchstart=e=>{e.preventDefault();const t=e.touches[0];juncDown({currentTarget:c,clientX:t.clientX,clientY:t.clientY});};c.ontouchmove=e=>{e.preventDefault();const t=e.touches[0];juncMove({currentTarget:c,clientX:t.clientX,clientY:t.clientY});};c.ontouchend=juncUp;}
+
+const DB=[{id:'sl-achter',label:'Schuin links achter',angle:225},{id:'links',label:'Links',angle:270},{id:'sl-voor',label:'Schuin links voor',angle:315},{id:'voor',label:'Vooruit',angle:0},{id:'sr-voor',label:'Schuin rechts voor',angle:45},{id:'rechts',label:'Rechts',angle:90},{id:'sr-achter',label:'Schuin rechts achter',angle:135}];
+const BG=[[2,3,4],[1,null,5],[0,null,6]];
+const T=[
+  {id:'bolletje',name:'Bolletje Pijltje',cardSvg:s=>bolSvg(s.dir_angle||0,52),sm:s=>bolSvg(s.dir_angle||0,26),defaultExtra:()=>({dir_id:'voor',dir_angle:0})},
+  {id:'kruispunt',name:'Kruispunten',cardSvg:s=>juncSvgCard(s.junc_streets||[],52),sm:s=>juncSvgCard(s.junc_streets||[{angle:0,isArrow:true},{angle:90,isArrow:false}],26),defaultExtra:()=>({junc_streets:[{angle:315,isArrow:false},{angle:45,isArrow:true}]})},
+  {id:'graden',name:'Graden Schieten',cardSvg:s=>gCard(s.graden||360,s.oost_om,s.west_om),cardSvgIsHtml:true,sm:()=>cSm(0,26),defaultExtra:()=>({graden:360,oost_om:false,west_om:false})},
+  {id:'helicopter',name:'Helicopter',cardSvg:s=>heliSvg(s.arrows||[{deg:45},{deg:135}],52),sm:()=>heliSvg([{deg:70},{deg:160}],26),defaultExtra:()=>({arrows:[{deg:45},{deg:135}],card_w:100,card_h:100})},
+  {id:'oogjes',name:'Oogjes',cardSvg:s=>eyeForDir(s.eye_dir||'rechts',52),sm:s=>eyeForDir(s.eye_dir||'rechts',26),defaultExtra:()=>({eye_dir:'rechts'})},
+  {id:'stripkaart',name:'Strippenkaart',cardSvg:s=>stripSvg(s.strip_steps||[{left:1,right:0},{left:0,right:1}],52,null),sm:()=>stripSvg([{left:2,right:0},{left:0,right:2},{left:1,right:1}],26,null),defaultExtra:()=>({strip_steps:[{left:1,right:0},{left:0,right:1},{left:1,right:1}],_selStrip:null,card_w:100,card_h:100})},
+  {id:'foto',name:'Foto route',
+    cardSvg:s=>fotoCardSvg(s,52),
+    cardSvgIsHtml:true,
+    sm:()=>`<svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="2" y="5" width="22" height="16" rx="2" stroke="#888" stroke-width="1.5"/><circle cx="13" cy="13" r="4" stroke="#888" stroke-width="1.5"/><path d="M9 5 L10.5 2.5 L15.5 2.5 L17 5" stroke="#888" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
+    defaultExtra:()=>({foto_data:null,card_w:100,card_h:100,foto_mirror:false,foto_blur:0,foto_bw:false,foto_color:false})},
+];
+function fotoFilter(s){
+  let f='';
+  if(s.foto_blur>0) f+=`blur(${s.foto_blur}px) `;
+  if(s.foto_bw) f+='grayscale(1) ';
+  if(s.foto_color) f+='hue-rotate(120deg) saturate(3) ';
+  return f.trim();
+}
+function fotoTransform(s){
+  return s.foto_mirror?'scaleX(-1)':'';
+}
+function fotoCardSvg(s,sz){
+  if(s.foto_data){
+    const f=fotoFilter(s), t=fotoTransform(s);
+    return`<div style="width:${sz}px;height:${sz}px;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center"><img src="${s.foto_data}" style="width:100%;height:100%;object-fit:cover;${f?`filter:${f};`:''}${t?`transform:${t};`:''}"/></div>`;
+  }
+  return`<div style="width:${sz}px;height:${sz}px;border-radius:6px;border:1px dashed #aaa;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#aaa" stroke-width="1.5"/><circle cx="12" cy="12" r="3.5" stroke="#aaa" stroke-width="1.5"/><path d="M8 5 L9.5 2.5 L14.5 2.5 L16 5" stroke="#aaa" stroke-width="1.5" stroke-linejoin="round"/></svg></div>`;
+}
+function fotoToggleBlur(){if(sel===null)return;const s=steps[sel];s.foto_blur=s.foto_blur>0?0:1;render();renderD();}
+function fotoToggle(key){if(sel===null)return;steps[sel][key]=!steps[sel][key];render();renderD();}
+function fotoBlur(val){if(sel===null)return;steps[sel].foto_blur=parseFloat(val);render();
+  // update preview inline without full re-render
+  const img=document.querySelector('#detailInner img');if(img){img.style.filter=fotoFilter(steps[sel]);}
+  const span=document.querySelector('#detailInner input[type=range]+span');if(span)span.textContent=parseFloat(val)+'px';
+}
+function fotoImport(){
+  if(sel===null)return;
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='image/png,image/jpeg,image/jpg';
+  inp.onchange=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      steps[sel].foto_data=ev.target.result;
+      render();renderD();
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+function gT(id){return T.find(t=>t.id===id)||T[0]}
+let steps=[],sel=null;
+const lastT=()=>steps.length?steps[steps.length-1].tid:T[0].id;
+function deepCopy(obj){return JSON.parse(JSON.stringify(obj));}
+const lastEx=()=>{if(!steps.length)return{};const p=steps[steps.length-1],td=gT(p.tid);if(td.defaultExtra){const k=Object.keys(td.defaultExtra()).filter(k=>k!=='card_w'&&k!=='card_h'),e={};k.forEach(k2=>{if(p[k2]!==undefined)e[k2]=deepCopy(p[k2]);});return e;}return{};};
+function addStep(){const tid=lastT(),td=gT(tid),ex=td.defaultExtra?deepCopy(td.defaultExtra()):{};Object.assign(ex,lastEx());steps.push({tid,...ex});render();sel=steps.length-1;renderD();highlight();}
+function pick(i){sel=i;dotIdx=null;dragIdx=null;renderD();highlight();}
+function setTid(id){if(sel===null)return;const td=gT(id),ex=td.defaultExtra?deepCopy(td.defaultExtra()):{};steps[sel]={tid:id,...ex};render();renderD();highlight();}
+function delStep(i){steps.splice(i,1);sel=steps.length?Math.min(i,steps.length-1):null;render();renderD();}
+function highlight(){document.querySelectorAll('.card').forEach((el,i)=>el.classList.toggle('sel',i===sel));}
+const MIN_CARD=100, MAX_CARD=400;
+function render(){
+  const tc=document.getElementById('total-count');
+  if(tc&&document.activeElement!==tc)tc.value=steps.length;
+  // always sync strip heights before drawing
+  steps.forEach(s=>{if(s.tid==='stripkaart')syncStripHeight(s);});
+  document.getElementById('grid').innerHTML=steps.map((s,i)=>{
+    const td=gT(s.tid);
+    const isResizable=(s.tid==='helicopter'||s.tid==='stripkaart'||s.tid==='foto');
+    let styleAttr, ico;
+    if(isResizable){
+      const w=s.card_w||100, h=s.card_h||100;
+      let svgHtml;
+      if(s.tid==='foto'){
+        const f=fotoFilter(s),t=fotoTransform(s);
+        svgHtml=s.foto_data
+          ?`<img src="${s.foto_data}" style="width:${w-4}px;height:${h-4}px;object-fit:cover;border-radius:4px;display:block;${f?`filter:${f};`:''}${t?`transform:${t};`:''}"/>`
+          :`<div style="width:${w-4}px;height:${h-4}px;border:1px dashed #ccc;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px">📷</div>`;
+        ico=`<div style="width:${w-4}px;height:${h-4}px">${svgHtml}</div>`;
+      } else {
+        const sz=s.tid==='stripkaart'?Math.max(40,w-16):Math.max(40,Math.min(w,h)-16);
+        svgHtml=s.tid==='helicopter'?heliSvg(s.arrows||[{deg:45},{deg:135}],sz):stripSvg(s.strip_steps||[{left:1,right:0}],sz,null);
+        ico=`<div class="icon" style="width:${sz}px;height:${s.tid==='stripkaart'?h-16:sz}px;overflow:visible">${svgHtml}</div>`;
+      }
+      const rowSpan=h+10;
+      const colSpan=Math.max(1,Math.round((w+10)/110));
+      styleAttr=`style="width:${w}px;height:${h}px;grid-row:span ${rowSpan};grid-column:span ${colSpan}"`;
+    } else {
+      const svgHtml=td.cardSvgIsHtml?td.cardSvg(s):(td.cardSvg?td.cardSvg(s):'');
+      ico=`<div class="icon">${svgHtml}</div>`;
+      styleAttr='';
+    }
+    const handleHtml=isResizable?`<div class="rh-r" onmousedown="startResize(event,${i},'w')"></div><div class="rh-b" onmousedown="startResize(event,${i},'h')"></div><div class="rh-c" onmousedown="startResize(event,${i},'wh')"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="4" y1="13" x2="13" y2="4" stroke="#1a1a1a" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13" x2="13" y2="8" stroke="#1a1a1a" stroke-width="1.8" stroke-linecap="round"/></svg></div>`:'';
+    return`<div class="card${i===sel?' sel':''}${isResizable?' resizable':''}" ${styleAttr} onclick="pick(${i})" id="card-${i}"><span class="num">${i+1}</span>${ico}${handleHtml}</div>`;
+  }).join('');
+  highlight();
+}
+
+// ── resize drag ───────────────────────────────────────────────────────────────
+let _ri=null,_rx0=0,_ry0=0,_rw0=0,_rh0=0,_raxis='wh';
+function startResize(e,i,axis){
+  e.stopPropagation();e.preventDefault();
+  _ri=i;_rx0=e.clientX;_ry0=e.clientY;_raxis=axis||'wh';
+  _rw0=steps[i].card_w||100;_rh0=steps[i].card_h||100;
+  document.addEventListener('mousemove',doResize);
+  document.addEventListener('mouseup',endResize);
+}
+function doResize(e){
+  if(_ri===null)return;
+  const dw=e.clientX-_rx0,dh=e.clientY-_ry0;
+  if(_raxis==='w'||_raxis==='wh'){
+    const raw=Math.max(MIN_CARD,Math.min(MAX_CARD,_rw0+dw));
+    steps[_ri].card_w=Math.max(100,Math.round((raw+10)/110)*110-10);
+  }
+  if(_raxis==='h'||_raxis==='wh'){
+    const raw=Math.max(MIN_CARD,Math.min(MAX_CARD,_rh0+dh));
+    steps[_ri].card_h=Math.max(100,Math.round((raw+10)/110)*110-10);
+  }
+  const s=steps[_ri];
+  const w=s.card_w,h=s.card_h;
+  const card=document.getElementById('card-'+_ri);
+  if(card){
+    card.style.width=w+'px';
+    card.style.height=h+'px';
+    card.style.gridRow=`span ${h+10}`;
+    card.style.gridColumn=`span ${Math.max(1,Math.round((w+10)/110))}`;
+    const sz=Math.max(40,Math.min(w,h)-16);
+    const icon=card.querySelector('.icon');
+    if(icon){
+      icon.style.width=sz+'px';icon.style.height=sz+'px';
+      if(s.tid==='helicopter')icon.innerHTML=heliSvg(s.arrows||[],sz);
+      else if(s.tid==='stripkaart')icon.innerHTML=stripSvg(s.strip_steps||[],sz,null);
+    }
+  }
+}
+function endResize(){
+  document.removeEventListener('mousemove',doResize);
+  document.removeEventListener('mouseup',endResize);
+  _ri=null;
+}
+function renderTB(){document.getElementById('techList').innerHTML=T.map(t=>`<div class="topt" onclick="sTB('${t.id}')"><div class="topt-icon">${t.sm?t.sm({}):''}</div><span class="topt-name">${t.name}</span></div>`).join('');}
+function sTB(id){if(sel!==null)setTid(id);}
+function stripPick(si){if(sel===null)return;const s=steps[sel];if(s.tid!=='stripkaart')return;s._selStrip=s._selStrip===si?null:si;render();renderD();}
+function renderD(){
+  const el=document.getElementById('detailInner');
+  if(sel===null||!steps.length){el.innerHTML=`<p class="d-hint">${steps.length?'Selecteer een stap.':'Voeg een stap toe om te beginnen.'}</p>`;return;}
+  const s=steps[sel],td=gT(s.tid);
+  let h=`<p class="d-stepnum">Stap ${sel+1}</p><p class="d-tname">${td.name}</p>`;
+  if(s.tid==='bolletje'){h+=`<div style="display:flex;justify-content:center;margin-bottom:10px">${bolSvg(s.dir_angle||0,80,'#378ADD')}</div><div class="dir-ring">`;BG.forEach(row=>row.forEach(di=>{if(di===null){h+=`<div class="dir-cell empty"></div>`;}else{const d=DB[di],act=s.dir_id===d.id;h+=`<div class="dir-cell${act?' active':''}" onclick="sDir('${d.id}',${d.angle})">${bolSvg(d.angle,28,act?'#378ADD':'#888780')}</div>`;}}));h+=`</div><p style="font-size:11px;color:#aaa">${DB.find(d=>d.id===s.dir_id)?.label||''}</p>`;}
+  if(s.tid==='graden'){const cur=Math.max(1,Math.min(360,s.graden||360)),pad=String(cur).padStart(3,'0'),suf=s.oost_om?' OO':s.west_om?' WO':'';h+=`<p class="sec-label">Graden (001 – 360)</p><input class="g-input" id="gIn" type="text" inputmode="numeric" maxlength="3" value="${pad}" oninput="gInput(this)" onblur="gBlur(this)"/><p style="font-size:13px;font-family:'DM Serif Display',serif;text-align:center;margin:8px 0 12px;color:#1a1a1a">${pad}°${suf}</p><div class="div" style="margin-top:0"></div><button type="button" class="om-btn${s.oost_om?' active':''}" onclick="toggleOO()"><span class="om-check">${TICK_SVG}</span><span class="om-label">Oost om</span><span class="om-tag">OO</span></button><button type="button" class="om-btn${s.west_om?' active':''}" onclick="toggleWO()"><span class="om-check">${TICK_SVG}</span><span class="om-label">West om</span><span class="om-tag">WO</span></button>`;}
+  if(s.tid==='helicopter'){const arrows=s.arrows||[];h+=`<div style="display:flex;justify-content:center;margin-bottom:12px">${heliSvg(arrows,100)}</div>`;h+=`<p class="sec-label">Aantal pijlen</p><div class="count-row"><button class="count-btn" onclick="heliRem()">−</button><span class="count-num">${arrows.length}</span><button class="count-btn" onclick="heliAdd()">+</button></div><p class="sec-label">Richting per pijl</p>`;arrows.forEach((arr,i)=>{const pad=String(Math.max(1,Math.min(360,arr.deg||1))).padStart(3,'0');h+=`<div class="heli-arrow-row"><span class="heli-arrow-label">${i+1}</span><input class="heli-deg-input" type="text" inputmode="numeric" maxlength="3" value="${pad}" oninput="hDegIn(this,${i})" onblur="hDegBlur(this,${i})"/><span class="heli-deg-sym">°</span></div>`;});}
+  if(s.tid==='oogjes'){const curDir=EYE_DIRS.find(x=>x.id===s.eye_dir)||EYE_DIRS[5];h+=`<div style="display:flex;justify-content:center;margin-bottom:14px">${eyeForDir(s.eye_dir||'rechts',100)}</div>`;h+=`<p class="sec-label">Kijkrichting</p><div class="eye-dir-grid">`;EYE_DIRS.forEach(d=>{const act=s.eye_dir===d.id;h+=`<div class="eye-dir-cell${act?' active':''}" title="${d.label}" onclick="setEyeDir('${d.id}')">${eyeSvg(d.angle,30,!!d.center)}</div>`;});h+=`</div><p style="font-size:11px;color:#aaa;text-align:center">${curDir.label}</p>`;}
+  if(s.tid==='stripkaart'){const ss=s.strip_steps||[],si=s._selStrip;h+=`<p class="sec-label">Aantal stappen</p><div class="count-row"><button class="count-btn" onclick="stripRem()">−</button><input type="text" inputmode="numeric" maxlength="3" value="${ss.length}" style="width:44px;text-align:center;background:var(--color-background-secondary,#f5f4f0);border:0.5px solid rgba(0,0,0,0.12);border-radius:6px;padding:4px 0;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#1a1a1a;outline:none" oninput="stripCountInput(this)" onblur="stripCountBlur(this)" onfocus="this.select()"/><button class="count-btn" onclick="stripAdd()">+</button></div>`;if(si!==null&&si!==undefined&&ss[si]){const st=ss[si];h+=`<p class="sec-label" style="margin-top:4px">Stap ${si+1} — zijlijnen</p>`;h+=`<div class="strip-side-row"><span class="strip-side-label">Links</span><div class="count-row" style="margin-bottom:0"><button class="count-btn" onclick="stripAdj(${si},'left',-1)">−</button><span class="count-num">${st.left}</span><button class="count-btn" onclick="stripAdj(${si},'left',1)">+</button></div></div>`;h+=`<div class="strip-side-row"><span class="strip-side-label">Rechts</span><div class="count-row" style="margin-bottom:0"><button class="count-btn" onclick="stripAdj(${si},'right',-1)">−</button><span class="count-num">${st.right}</span><button class="count-btn" onclick="stripAdj(${si},'right',1)">+</button></div></div>`;}else{h+=`<p style="font-size:11px;color:#aaa;margin-top:4px">Klik op een stap in de preview om zijlijnen aan te passen.</p>`;}h+=`<div style="margin-top:10px">${stripLargeSvg(ss,si)}</div>`;}
+  if(s.tid==='kruispunt'){h+=`<div id="junc-canvas-wrap"><canvas id="junc-canvas" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}"></canvas></div>`;h+=`<p style="font-size:11px;color:#aaa;text-align:center;margin-bottom:10px">Sleep een punt om de richting aan te passen</p>`;h+=`<div id="street-list"></div><button class="junc-add-btn" onclick="addStreet()">+ straat toevoegen</button>`;}
+  if(s.tid==='foto'){
+    h+=`<button type="button" onclick="fotoImport()" style="width:100%;padding:9px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);background:#f5f4f0;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#1a1a1a;cursor:pointer;margin-bottom:12px">📷 Foto importeren</button>`;
+    if(s.foto_data){
+      const f=fotoFilter(s),t=fotoTransform(s);
+      h+=`<div style="border-radius:8px;overflow:hidden;border:0.5px solid rgba(0,0,0,0.1);margin-bottom:12px"><img src="${s.foto_data}" style="width:100%;display:block;object-fit:contain;${f?`filter:${f};`:''}${t?`transform:${t};`:''}"/></div>`;
+      // Mirror
+      h+=`<button type="button" onclick="fotoToggle('foto_mirror')" class="om-btn${s.foto_mirror?' active':''}"><span class="om-check">${TICK_SVG}</span><span class="om-label">Mirror</span></button>`;
+      // B&W
+      h+=`<button type="button" onclick="fotoToggle('foto_bw')" class="om-btn${s.foto_bw?' active':''}"><span class="om-check">${TICK_SVG}</span><span class="om-label">Zwart-wit</span></button>`;
+      // Random color
+      h+=`<button type="button" onclick="fotoToggle('foto_color')" class="om-btn${s.foto_color?' active':''}"><span class="om-check">${TICK_SVG}</span><span class="om-label">Rare kleuren</span></button>`;
+      // Blur toggle + slider (slider only visible when blur is on)
+      h+=`<button type="button" onclick="fotoToggleBlur()" class="om-btn${s.foto_blur>0?' active':''}"><span class="om-check">${TICK_SVG}</span><span class="om-label">Blur</span></button>`;
+      if(s.foto_blur>0){
+        h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 2px">
+          <input type="range" min="0.5" max="5" step="0.5" value="${s.foto_blur||1}"
+            style="flex:1;accent-color:#378ADD;cursor:pointer"
+            oninput="fotoBlur(this.value)"/>
+          <span style="font-size:12px;color:#666;min-width:32px;text-align:right">${s.foto_blur||1}px</span>
+        </div>`;
+      }
+    } else {
+      h+=`<div style="border:1px dashed #ccc;border-radius:8px;padding:24px;text-align:center;font-size:12px;color:#aaa">Nog geen foto gekozen</div>`;
+    }
+  }
+  h+=`<div class="div"></div><button class="del-btn" onclick="delStep(${sel})">stap verwijderen</button>`;
+  el.innerHTML=h;
+  if(s.tid==='kruispunt')setTimeout(()=>{setupJunc();drawJuncCanvas();renderStreetList();},10);
+}
+function sDir(id,angle){if(sel===null)return;steps[sel].dir_id=id;steps[sel].dir_angle=angle;render();renderD();}
+function gInput(inp){if(sel===null)return;const raw=inp.value.replace(/\D/g,'');inp.value=raw;if(raw==='')return;let n=Math.max(1,Math.min(360,parseInt(raw)||1));steps[sel].graden=n;render();const lbl=document.querySelector('#detailInner p[style*="DM Serif"]');if(lbl){const s2=steps[sel];lbl.textContent=String(n).padStart(3,'0')+'°'+(s2.oost_om?' OO':s2.west_om?' WO':'');}}
+function gBlur(inp){if(sel===null)return;let n=Math.max(1,Math.min(360,parseInt(inp.value)||1));steps[sel].graden=n;inp.value=String(n).padStart(3,'0');render();renderD();}
+function toggleOO(){if(sel===null)return;const s=steps[sel];s.oost_om=!s.oost_om;if(s.oost_om)s.west_om=false;render();renderD();}
+function toggleWO(){if(sel===null)return;const s=steps[sel];s.west_om=!s.west_om;if(s.west_om)s.oost_om=false;render();renderD();}
+function heliAdd(){if(sel===null)return;steps[sel].arrows.push({deg:45});render();renderD();}
+function heliRem(){if(sel===null)return;if(steps[sel].arrows.length<=1)return;steps[sel].arrows.pop();render();renderD();}
+function hDegIn(inp,i){if(sel===null)return;const raw=inp.value.replace(/\D/g,'');inp.value=raw;if(raw==='')return;let n=Math.max(1,Math.min(360,parseInt(raw)||1));steps[sel].arrows[i].deg=n;render();}
+function hDegBlur(inp,i){if(sel===null)return;let n=Math.max(1,Math.min(360,parseInt(inp.value)||1));steps[sel].arrows[i].deg=n;inp.value=String(n).padStart(3,'0');render();renderD();}
+function setEyeDir(id){if(sel===null)return;steps[sel].eye_dir=id;render();renderD();}
+// Auto-size strippenkaart height to fit all steps
+// Uses same proportions as stripSvg: SH=22*sc where sc=sz/140, sz=card_w
+function syncStripHeight(s){
+  if(s.tid!=='stripkaart')return;
+  const w=s.card_w||100;
+  const sz=Math.max(40,w-16);
+  const sc=sz/140;
+  const SH=22*sc,PT=8*sc,PB=8*sc;
+  const n=s.strip_steps?s.strip_steps.length:1;
+  const svgH=PT+n*SH+PB;
+  // always update to exact needed height — let user resize after
+  s.card_h=Math.max(100,Math.ceil(svgH+16));
+}
+function stripCountInput(inp){const raw=inp.value.replace(/\D/g,'');inp.value=raw;}
+function stripCountBlur(inp){
+  if(sel===null)return;
+  const n=Math.max(1,Math.min(99,parseInt(inp.value)||1));
+  inp.value=n;
+  const s=steps[sel];
+  const cur=s.strip_steps.length;
+  if(n>cur){for(let i=cur;i<n;i++)s.strip_steps.push({left:0,right:0});}
+  else if(n<cur){s.strip_steps=s.strip_steps.slice(0,n);if((s._selStrip||0)>=n)s._selStrip=null;}
+  syncStripHeight(s);render();renderD();
+}
+function stripAdd(){if(sel===null)return;steps[sel].strip_steps.push({left:0,right:0});syncStripHeight(steps[sel]);render();renderD();}
+function stripRem(){if(sel===null)return;const ss=steps[sel].strip_steps;if(ss.length<=1)return;ss.pop();if(steps[sel]._selStrip>=ss.length)steps[sel]._selStrip=null;syncStripHeight(steps[sel]);render();renderD();}
+function stripAdj(si,side,delta){if(sel===null)return;const ss=steps[sel].strip_steps;ss[si][side]=Math.max(0,Math.min(8,ss[si][side]+delta));render();renderD();}
+
+function setTotalStepsDirect(n){
+  n=Math.max(0,Math.min(999,n));
+  const inp=document.getElementById('total-count');
+  if(inp)inp.value=n;
+  const cur=steps.length;
+  if(n>cur){for(let i=cur;i<n;i++)addStep();}
+  else if(n<cur){steps.splice(n);sel=steps.length?Math.min(sel||0,steps.length-1):null;render();renderD();}
+}
+function setTotalSteps(inp){
+  setTotalStepsDirect(parseInt(inp.value)||0);
+}
+renderTB();render();renderD();
+document.getElementById('addBtn').addEventListener('click',addStep);
+</script>
+</body>
+</html>
