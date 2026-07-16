@@ -37,7 +37,7 @@ body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a1a;min-heigh
 .header{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:0.5px solid rgba(0,0,0,0.12)}
 .t-title{font-family:'DM Serif Display',serif;font-size:30px;background:transparent;border:none;outline:none;color:#1a1a1a;width:100%;display:block;margin-bottom:.4rem}
 .t-title::placeholder,.t-sub::placeholder{color:#bbb}
-.t-sub{font-size:14px;background:transparent;border:none;outline:none;color:#666;width:100%;display:block}
+.t-sub{font-family:'DM Sans',sans-serif;font-size:14px;background:transparent;border:none;outline:none;color:#666;width:100%;display:block;resize:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;line-height:1.4;padding:0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,100px);grid-auto-rows:1px;column-gap:10px;row-gap:0;grid-auto-flow:dense}
 .card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:8px;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100px;height:100px;flex-shrink:0;align-self:start;transition:border-color .12s;overflow:visible;grid-row:span 110}
 .card.resizable{overflow:visible}
@@ -160,7 +160,6 @@ body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a1a;min-heigh
 #mobile-scrim{display:none}
 
 @media (max-width:820px){
-  /* protruding tab handles attached to each drawer's inner edge */
   .drawer-tab{
     display:flex;align-items:center;justify-content:center;
     position:absolute;top:10px;
@@ -181,8 +180,6 @@ body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a1a;min-heigh
     border-radius:12px 0 0 12px;
     box-shadow:-3px 1px 10px rgba(0,0,0,0.10)
   }
-
-  /* left drawer: technieken */
   #techbar{
     position:fixed;left:0;top:36px;overflow:visible;
     height:calc(100vh - 36px);width:240px;max-width:80vw;
@@ -191,8 +188,6 @@ body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a1a;min-heigh
     z-index:400;box-shadow:2px 0 18px rgba(0,0,0,0.14)
   }
   #techbar.drawer-open{transform:translateX(0)}
-
-  /* right drawer: aanpassen */
   #detail-wrap{
     position:fixed;right:0;top:36px;
     height:calc(100vh - 36px);
@@ -207,12 +202,9 @@ body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a1a;min-heigh
     height:calc(100vh - 36px)
   }
   #detail-resize{display:none}
-
   #main{padding:1.25rem 1rem 4rem}
   .t-title{font-size:24px}
   .grid{column-gap:8px}
-
-  /* scrim behind open drawer */
   #mobile-scrim{
     position:fixed;left:0;right:0;top:36px;bottom:0;
     background:rgba(0,0,0,0.32);z-index:350
@@ -279,7 +271,7 @@ body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a1a;min-heigh
   <div id="main">
     <div class="header">
       <input class="t-title" id="rTitle" placeholder="Naam van de route…"/>
-      <input class="t-sub" id="rSub" placeholder="Korte omschrijving…"/>
+      <textarea class="t-sub" id="rSub" placeholder="Korte omschrijving…" rows="1" oninput="autoGrowSub(this)"></textarea>
     </div>
     <div class="grid" id="grid"></div>
     <button class="add-btn" id="addBtn">+ stap toevoegen</button>
@@ -332,6 +324,23 @@ body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a1a;min-heigh
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const TICK_SVG=`<svg class="om-check-tick" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// Compact L/R side toggle, reused for signs/text/symbols on a junction street.
+function sideToggleHtml(current,setterFnName){
+  const cur=current==='L'?'L':'R';
+  function btn(v){
+    const on=cur===v;
+    return `<button type="button" onclick="${setterFnName}('${v}')" style="flex:1;padding:6px;border-radius:6px;border:0.5px solid ${on?'#378ADD':'rgba(0,0,0,0.15)'};background:${on?'#e6f1fb':'#f5f4f0'};color:${on?'#185FA5':'#1a1a1a'};font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer">${v}</button>`;
+  }
+  return `<p class="sec-label" style="margin-top:8px">Kant vanaf beginpunt</p><div style="display:flex;gap:6px;margin-bottom:8px">${btn('L')}${btn('R')}</div>`;
+}
+
+// ── Auto-growing description field ─────────────────────────────────────────────
+function autoGrowSub(el){
+  el=el||document.getElementById('rSub');
+  if(!el)return;
+  el.style.height='auto';
+  el.style.height=el.scrollHeight+'px';
+}
 
 // ── dropdown ──────────────────────────────────────────────────────────────────
 function toggleDD(){
@@ -348,6 +357,9 @@ document.addEventListener('click',e=>{
   if(_signDDopen&&!e.target.closest('.sign-dd')){
     _signDDopen=false;renderD();
   }
+  if(_symbolDDopen&&!e.target.closest('.sign-dd')){
+    _symbolDDopen=false;renderD();
+  }
 });
 
 // ── NEW ───────────────────────────────────────────────────────────────────────
@@ -356,6 +368,7 @@ function fileNew(){
   steps=[];sel=null;
   document.getElementById('rTitle').value='';
   document.getElementById('rSub').value='';
+  autoGrowSub();
   render();renderD();
   toggleDD();
 }
@@ -394,6 +407,7 @@ function handleOpen(input){
       const data=JSON.parse(e.target.result);
       document.getElementById('rTitle').value=data.title||'';
       document.getElementById('rSub').value=data.subtitle||'';
+      autoGrowSub();
       steps=deepCopy(data.steps||[]);
       sel=null;
       render();renderD();
@@ -409,7 +423,9 @@ let _expPngs=null;
 function setExpCols(n){
   expCols=n;
   document.querySelectorAll('.exp-col-btn').forEach(b=>b.classList.toggle('active',parseInt(b.textContent)===n));
-  renderExpPreview();
+  // regenerate icons: a step wider than the new column count needs a
+  // freshly-rendered, correctly-proportioned image, not a stretched old one
+  generateExpPngs().then(pngs=>{_expPngs=pngs;renderExpPreview();});
 }
 
 function renderExpPreview(){
@@ -426,8 +442,20 @@ function renderExpPreview(){
   const cols=expCols,colGap=5,rowGap=5;
   const colW=Math.floor((pageW-marginL-marginR-(cols-1)*colGap)/cols);
 
-  function spanC(s){const isR=s.tid==='helicopter'||s.tid==='stripkaart';if(!isR)return 1;return Math.max(1,Math.round(((s.card_w||100)+10)/110));}
-  function spanR(s){const isR=s.tid==='helicopter'||s.tid==='stripkaart';if(!isR)return 1;return Math.max(1,Math.round(((s.card_h||100)+10)/110));}
+  function isResizableStep(s){return s.tid==='helicopter'||s.tid==='stripkaart'||s.tid==='foto'||s.tid==='tekst'||s.tid==='empty';}
+  // Column/row span a step should occupy in THIS export. If the step is
+  // wider than the chosen number of columns, both dimensions scale down
+  // together so nothing bleeds off the edge of the page.
+  function effSpan(s){
+    if(!isResizableStep(s))return{sc:1,sr:1};
+    const rawSc=Math.max(1,Math.round(((s.card_w||100)+10)/110));
+    const rawSr=Math.max(1,Math.round(((s.card_h||100)+10)/110));
+    if(rawSc<=cols)return{sc:rawSc,sr:rawSr};
+    const scale=cols/rawSc;
+    return{sc:cols,sr:Math.max(1,Math.round(rawSr*scale))};
+  }
+  function spanC(s){return effSpan(s).sc;}
+  function spanR(s){return effSpan(s).sr;}
 
   // build same 2D occupancy grid
   const MAX_ROWS=200;
@@ -441,23 +469,40 @@ function renderExpPreview(){
   container.innerHTML='';
   const page=document.createElement('div');
   page.style.cssText=`position:relative;width:${previewW}px;height:${previewH}px;background:white;border-radius:4px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.15)`;
+  container.appendChild(page); // attach early so we can measure wrapped text heights below
 
-  // title area
+  // title area (wraps onto multiple lines if it doesn't fit)
+  const contentWpx=(pageW-marginL-marginR)*scale;
+  const titleTopPx=10*scale;
+  const gapPx=2*scale;
+  const dividerGapPx=6*scale;
+
   const titleEl=document.createElement('div');
   const t=document.getElementById('rTitle').value||'Route';
   const sub=document.getElementById('rSub').value||'';
-  titleEl.style.cssText=`position:absolute;left:${marginL*scale}px;top:${10*scale}px;font-family:'DM Serif Display',serif;font-size:${Math.round(7*scale)}px;font-weight:bold;color:#1a1a1a;white-space:nowrap;overflow:hidden`;
+  titleEl.style.cssText=`position:absolute;left:${marginL*scale}px;top:${titleTopPx}px;width:${contentWpx}px;font-family:'DM Serif Display',serif;font-size:${Math.round(7*scale)}px;line-height:1.15;font-weight:bold;color:#1a1a1a;white-space:normal;overflow-wrap:break-word`;
   titleEl.textContent=t;
   page.appendChild(titleEl);
-  if(sub){const subEl=document.createElement('div');subEl.style.cssText=`position:absolute;left:${marginL*scale}px;top:${18*scale}px;font-family:'DM Sans',sans-serif;font-size:${Math.round(3.5*scale)}px;color:#666`;subEl.textContent=sub;page.appendChild(subEl);}
+  const titleH=titleEl.offsetHeight;
+
+  let afterTitlePx=titleTopPx+titleH;
+  let subH=0;
+  if(sub){
+    const subEl=document.createElement('div');
+    subEl.style.cssText=`position:absolute;left:${marginL*scale}px;top:${afterTitlePx+gapPx}px;width:${contentWpx}px;font-family:'DM Sans',sans-serif;font-size:${Math.round(3.5*scale)}px;line-height:1.3;color:#666;white-space:normal;overflow-wrap:break-word`;
+    subEl.textContent=sub;
+    page.appendChild(subEl);
+    subH=subEl.offsetHeight;
+  }
+  const afterBlockPx=sub?(afterTitlePx+gapPx+subH):afterTitlePx;
+  const divYpx=afterBlockPx+gapPx;
 
   // divider
   const div=document.createElement('div');
-  const divY=sub?26:18;
-  div.style.cssText=`position:absolute;left:${marginL*scale}px;right:${marginR*scale}px;top:${divY*scale}px;height:0.5px;background:#ddd`;
+  div.style.cssText=`position:absolute;left:${marginL*scale}px;right:${marginR*scale}px;top:${divYpx}px;height:0.5px;background:#ddd`;
   page.appendChild(div);
 
-  const startY=(divY+6)*scale;
+  const startY=divYpx+dividerGapPx;
   const rowUnitPx=(colW+rowGap)*scale;
   const rowsPerPage=Math.floor((previewH-startY-marginL*scale)/rowUnitPx);
 
@@ -474,9 +519,10 @@ function renderExpPreview(){
     const card=document.createElement('div');
     card.style.cssText=`position:absolute;left:${px}px;top:${py}px;width:${wMm*scale}px;height:${hMm*scale}px;border-radius:${2*scale}px;overflow:hidden`;
 
+    const _dn=displayNums();
     const numEl=document.createElement('div');
     numEl.style.cssText=`position:absolute;top:${2*scale}px;left:${2*scale}px;font-size:${Math.max(7,2.5*scale)}px;font-weight:700;color:#555;font-family:'DM Sans',sans-serif;z-index:2;line-height:1`;
-    numEl.textContent=String(i+1);
+    numEl.textContent=_dn[i]!==null?String(_dn[i]):'';
     card.appendChild(numEl);
 
     if(_expPngs[i]){
@@ -487,24 +533,50 @@ function renderExpPreview(){
     }
     page.appendChild(card);
   });
-
-  container.appendChild(page);
 }
 
 function fileExport(){
   document.getElementById('export-overlay').classList.add('show');
-  // pre-render icons for preview
+  generateExpPngs().then(pngs=>{
+    _expPngs=pngs;
+    setTimeout(renderExpPreview,50);
+  });
+  toggleDD();
+}
+// Pre-render every step's icon as a PNG, sized for the CURRENT expCols setting.
+// A step wider than the chosen column count is rendered at the scaled-down
+// (proportional) aspect ratio it will actually occupy, so nothing gets
+// stretched or squeezed once it's dropped into the export layout.
+function generateExpPngs(){
   const iconPx=120;
-  Promise.all(steps.map(s=>{
+  const cols=expCols;
+  function effSpanExp(s){
+    const isR=s.tid==='helicopter'||s.tid==='stripkaart'||s.tid==='foto'||s.tid==='tekst'||s.tid==='empty';
+    if(!isR)return{sc:1,sr:1};
+    const rawSc=Math.max(1,Math.round(((s.card_w||100)+10)/110));
+    const rawSr=Math.max(1,Math.round(((s.card_h||100)+10)/110));
+    if(rawSc<=cols)return{sc:rawSc,sr:rawSr};
+    const scale=cols/rawSc;
+    return{sc:cols,sr:Math.max(1,Math.round(rawSr*scale))};
+  }
+  return Promise.all(steps.map(s=>{
     let svg='';
     if(s.tid==='bolletje') svg=bolSvg(s.dir_angle||0,iconPx,'#378ADD',s.dir_dashed);
-    else if(s.tid==='kruispunt') svg=juncSvgCard(s.junc_streets||[],iconPx);
+    else if(s.tid==='kruispunt') svg=juncSvgCard(s.junc_streets||[],iconPx,{roundabout:s.junc_roundabout});
     else if(s.tid==='graden'){const pad=String(Math.max(1,Math.min(360,s.graden||360))).padStart(3,'0');const suf=s.oost_om?' OO':s.west_om?' WO':'';svg=`<svg width="${iconPx}" height="${iconPx}" viewBox="0 0 ${iconPx} ${iconPx}" fill="none" xmlns="http://www.w3.org/2000/svg"><text x="${iconPx/2}" y="${iconPx/2+8}" text-anchor="middle" font-size="22" font-family="Georgia,serif" font-weight="bold" fill="#534AB7">${pad}°${suf}</text></svg>`;}
     else if(s.tid==='helicopter') svg=heliSvg(s.arrows||[{deg:45},{deg:135}],iconPx);
     else if(s.tid==='oogjes') svg=eyeForDir(s.eye_dir||'rechts',iconPx);
     else if(s.tid==='wind') svg=windCard(s,iconPx);
     else if(s.tid==='lantaarn') svg=lanternCard(s,iconPx);
     else if(s.tid==='klokjes') svg=clockCard(s,iconPx);
+    else if(s.tid==='tekst'){
+      const {sc,sr}=effSpanExp(s);
+      const pxW=Math.round(120*sc), pxH=Math.round(pxW*(sr/sc));
+      svg=textCardSvg(s,pxW);
+      if(svg&&!svg.includes('xmlns')) svg=svg.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+      return svgToPng(svg,pxW,pxH);
+    }
+    else if(s.tid==='empty') return Promise.resolve(null);
     else if(s.tid==='stripkaart') svg=stripSvg(s.strip_steps||[{left:1,right:0}],iconPx,null);
     else if(s.tid==='foto'){
       if(!s.foto_data) return Promise.resolve(null);
@@ -532,11 +604,7 @@ function fileExport(){
     }
     if(svg&&!svg.includes('xmlns')) svg=svg.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
     return svg?svgToPng(svg,iconPx,iconPx):Promise.resolve(null);
-  })).then(pngs=>{
-    _expPngs=pngs;
-    setTimeout(renderExpPreview,50);
-  });
-  toggleDD();
+  }));
 }
 function closeExport(){document.getElementById('export-overlay').classList.remove('show');}
 
@@ -574,40 +642,53 @@ async function doExport(){
   // Calculate each step's col/row span based on card_w/card_h
   // Base cell = 100px on screen. Scale: colW mm = 100px, so 1px = colW/100 mm
   const pxToMm=colW/100;
+  function isResizableStep(s){return s.tid==='helicopter'||s.tid==='stripkaart'||s.tid==='foto'||s.tid==='tekst'||s.tid==='empty';}
+  // Column/row span a step should occupy in THIS export. If the step is
+  // wider than the chosen number of columns, both dimensions scale down
+  // together so nothing bleeds off the edge of the page.
+  function effSpan(s){
+    if(!isResizableStep(s))return{sc:1,sr:1};
+    const rawSc=Math.max(1,Math.round(((s.card_w||100)+10)/110));
+    const rawSr=Math.max(1,Math.round(((s.card_h||100)+10)/110));
+    if(rawSc<=cols)return{sc:rawSc,sr:rawSr};
+    const scale=cols/rawSc;
+    return{sc:cols,sr:Math.max(1,Math.round(rawSr*scale))};
+  }
   function stepW(s){
-    const isR=s.tid==='helicopter'||s.tid==='stripkaart';
-    if(!isR)return colW;
-    const w=s.card_w||100;
-    const spanCols=Math.max(1,Math.round((w+10)/110));
-    return spanCols*colW+(spanCols-1)*colGap;
+    if(!isResizableStep(s))return colW;
+    const sc=effSpan(s).sc;
+    return sc*colW+(sc-1)*colGap;
   }
   function stepH(s){
-    const isR=s.tid==='helicopter'||s.tid==='stripkaart';
-    if(!isR)return colW; // square default
-    const h=s.card_h||100;
-    const spanRows=Math.max(1,Math.round((h+10)/110));
-    return spanRows*colW+(spanRows-1)*rowGap;
+    if(!isResizableStep(s))return colW; // square default
+    const sr=effSpan(s).sr;
+    return sr*colW+(sr-1)*rowGap;
   }
-  function spanCols(s){
-    const isR=s.tid==='helicopter'||s.tid==='stripkaart';
-    if(!isR)return 1;
-    return Math.max(1,Math.round(((s.card_w||100)+10)/110));
-  }
+  function spanCols(s){return effSpan(s).sc;}
 
   // pre-render icons at appropriate size
   const iconPngs=await Promise.all(steps.map(s=>{
-    const isR=s.tid==='helicopter'||s.tid==='stripkaart';
+    const isR=s.tid==='helicopter'||s.tid==='stripkaart'||s.tid==='foto'||s.tid==='tekst'||s.tid==='empty';
     const sc=spanCols(s);
     const iconPx=Math.round(120*sc);
     let svg='';
     if(s.tid==='bolletje') svg=bolSvg(s.dir_angle||0,iconPx,'#378ADD',s.dir_dashed);
-    else if(s.tid==='kruispunt') svg=juncSvgCard(s.junc_streets||[],iconPx);
+    else if(s.tid==='kruispunt') svg=juncSvgCard(s.junc_streets||[],iconPx,{roundabout:s.junc_roundabout});
     else if(s.tid==='graden'){const pad=String(Math.max(1,Math.min(360,s.graden||360))).padStart(3,'0');const suf=s.oost_om?' OO':s.west_om?' WO':'';svg=`<svg width="${iconPx}" height="${iconPx}" viewBox="0 0 ${iconPx} ${iconPx}" fill="none" xmlns="http://www.w3.org/2000/svg"><text x="${iconPx/2}" y="${iconPx/2+8}" text-anchor="middle" font-size="22" font-family="Georgia,serif" font-weight="bold" fill="#534AB7">${pad}°${suf}</text></svg>`;}
     else if(s.tid==='helicopter') svg=heliSvg(s.arrows||[{deg:45},{deg:135}],iconPx);
     else if(s.tid==='oogjes') svg=eyeForDir(s.eye_dir||'rechts',iconPx);
     else if(s.tid==='wind') svg=windCard(s,iconPx);
     else if(s.tid==='lantaarn') svg=lanternCard(s,iconPx);
     else if(s.tid==='klokjes') svg=clockCard(s,iconPx);
+    else if(s.tid==='tekst'){
+      const sw=stepW(s),sh=stepH(s);
+      const ratio=sh/sw;
+      const spx=iconPx,hpx=Math.round(iconPx*ratio);
+      svg=textCardSvg(s,spx);
+      if(svg&&!svg.includes('xmlns')) svg=svg.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+      return svgToPng(svg,spx,hpx);
+    }
+    else if(s.tid==='empty') return Promise.resolve(null);
     else if(s.tid==='stripkaart'){
       // for stripkaart use actual proportions
       const sw=stepW(s),sh=stepH(s);
@@ -648,20 +729,29 @@ async function doExport(){
 
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   let y=marginT;
+  const textMaxW=pageW-marginL-marginR;
+  function mmLH(sizePt){
+    const factor=(typeof doc.getLineHeightFactor==='function'?doc.getLineHeightFactor():1.15);
+    return sizePt*factor*25.4/72;
+  }
 
-  // Title
+  // Title (wraps onto multiple lines if it doesn't fit)
   doc.setFont('helvetica','bold');
   doc.setFontSize(22);
   doc.setTextColor(26,26,26);
-  doc.text(title,marginL,y);
-  y+=9;
+  const titleLines=doc.splitTextToSize(title,textMaxW);
+  const titleLH=mmLH(22);
+  titleLines.forEach((ln,i)=>doc.text(ln,marginL,y+i*titleLH));
+  y+=9+Math.max(0,titleLines.length-1)*titleLH;
 
   if(subtitle){
     doc.setFont('helvetica','normal');
     doc.setFontSize(11);
     doc.setTextColor(100,100,100);
-    doc.text(subtitle,marginL,y);
-    y+=7;
+    const subLines=doc.splitTextToSize(subtitle,textMaxW);
+    const subLH=mmLH(11);
+    subLines.forEach((ln,i)=>doc.text(ln,marginL,y+i*subLH));
+    y+=7+Math.max(0,subLines.length-1)*subLH;
     doc.setTextColor(26,26,26);
   }
 
@@ -699,8 +789,7 @@ async function doExport(){
 
   // place all steps
   const placements=steps.map(s=>{
-    const sc=spanCols(s);
-    const sr=Math.max(1,Math.round(((s.card_h||100)+10)/110));
+    const {sc,sr}=effSpan(s);
     const {r,c}=findPlace(sc,sr);
     occupy(r,c,sc,sr);
     return{r,c,sc,sr};
@@ -734,10 +823,13 @@ async function doExport(){
     const py=y+rowOnPage*rowUnitMm;
 
     // step number top-left
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(8);
-    doc.setTextColor(80,80,80);
-    doc.text(String(i+1),px+1.5,py+4);
+    const _dnum=displayNums()[i];
+    if(_dnum!==null){
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8);
+      doc.setTextColor(80,80,80);
+      doc.text(String(_dnum),px+1.5,py+4);
+    }
 
     // icon
     const imgData=iconPngs[i];
@@ -764,7 +856,55 @@ function bolSvg(a,sz,c,dashed){c=c||'#378ADD';const cx=sz/2,cy=sz/2,r=a*(Math.PI
 function cSm(deg,sz){const r=deg*(Math.PI/180),cx=sz/2,cy=sz/2,nl=sz*.36,tx=cx+Math.sin(r)*nl,ty=cy-Math.cos(r)*nl,bx=cx-Math.sin(r)*nl*.5,by=cy+Math.cos(r)*nl*.5;return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" fill="none"><circle cx="${cx}" cy="${cy}" r="${(sz*.44).toFixed(1)}" stroke="#534AB7" stroke-width="1.5"/><polygon points="${tx.toFixed(1)},${ty.toFixed(1)} ${(cx+Math.cos(r)*nl*.22).toFixed(1)},${(cy+Math.sin(r)*nl*.22).toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${(cx-Math.cos(r)*nl*.22).toFixed(1)},${(cy-Math.sin(r)*nl*.22).toFixed(1)}" fill="#534AB7"/><polygon points="${(cx-Math.sin(r)*nl*.75).toFixed(1)},${(cy+Math.cos(r)*nl*.75).toFixed(1)} ${(cx+Math.cos(r)*nl*.18).toFixed(1)},${(cy+Math.sin(r)*nl*.18).toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} ${(cx-Math.cos(r)*nl*.18).toFixed(1)},${(cy-Math.sin(r)*nl*.18).toFixed(1)}" fill="#B4B2A9"/><circle cx="${cx}" cy="${cy}" r="${(sz*.1).toFixed(1)}" fill="white" stroke="#534AB7" stroke-width="1"/></svg>`;}
 function gCard(deg,oo,wo){const n=Math.max(1,Math.min(360,deg||360)),pad=String(n).padStart(3,'0'),suf=oo?' OO':wo?' WO':'';return`<div class="g-card"><span>${pad}°${suf}</span></div>`;}
 function heliSvg(arrows,sz){const cx=sz/2,cy=sz/2,centerR=sz*0.07,aLen=sz*.38,aHead=sz*.085,aHeadW=sz*.05,aLblR=sz*.48,nLen=sz*.44,nHead=sz*.13,nHeadW=sz*.085,nLblR=sz*.56,nStroke=sz*.055;let out='';const ntx=cx,nty=cy-nLen,nabx=cx,naby=cy-nLen+nHead,nw1x=nabx+nHeadW,nw1y=naby,nw2x=nabx-nHeadW,nw2y=naby;out+=`<line x1="${cx}" y1="${cy}" x2="${nabx.toFixed(1)}" y2="${naby.toFixed(1)}" stroke="#1a1a1a" stroke-width="${nStroke.toFixed(1)}" stroke-linecap="round"/>`;out+=`<polygon points="${ntx.toFixed(1)},${nty.toFixed(1)} ${nw1x.toFixed(1)},${nw1y.toFixed(1)} ${nw2x.toFixed(1)},${nw2y.toFixed(1)}" fill="#1a1a1a"/>`;out+=`<text x="${cx}" y="${(cy-nLblR+sz*0.04).toFixed(1)}" text-anchor="middle" font-size="${(sz*0.13).toFixed(1)}" font-family="DM Sans,sans-serif" font-weight="500" fill="#1a1a1a">N</text>`;arrows.forEach((arr,i)=>{const deg=arr.deg||0,r=deg*(Math.PI/180),tx=cx+Math.sin(r)*aLen,ty=cy-Math.cos(r)*aLen,abx=tx-Math.sin(r)*aHead,aby=ty+Math.cos(r)*aHead,w1x=abx+Math.cos(r)*aHeadW,w1y=aby+Math.sin(r)*aHeadW,w2x=abx-Math.cos(r)*aHeadW,w2y=aby-Math.sin(r)*aHeadW;out+=`<line x1="${cx}" y1="${cy}" x2="${abx.toFixed(1)}" y2="${aby.toFixed(1)}" stroke="#378ADD" stroke-width="${(sz*0.025).toFixed(1)}" stroke-linecap="round"/>`;out+=`<polygon points="${tx.toFixed(1)},${ty.toFixed(1)} ${w1x.toFixed(1)},${w1y.toFixed(1)} ${w2x.toFixed(1)},${w2y.toFixed(1)}" fill="#378ADD"/>`;const lx=cx+Math.sin(r)*aLblR,ly=cy-Math.cos(r)*aLblR;out+=`<text x="${lx.toFixed(1)}" y="${(ly+sz*0.035).toFixed(1)}" text-anchor="middle" font-size="${(sz*0.11).toFixed(1)}" font-family="DM Sans,sans-serif" font-weight="500" fill="#378ADD">${i+1}</text>`;});out+=`<circle cx="${cx}" cy="${cy}" r="${(centerR*1.1).toFixed(1)}" fill="white" stroke="#1a1a1a" stroke-width="${(nStroke*.7).toFixed(1)}"/>`;out+=`<circle cx="${cx}" cy="${cy}" r="${(centerR*.45).toFixed(1)}" fill="#1a1a1a"/>`;return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" fill="none">${out}</svg>`;}
-function drawStrip(ss,CX,STEP_H,TICK_LEN,LW,DOT_R,PAD_TOP,PAD_BOT,W,selIdx,clickable,showNumbers){const svgH=PAD_TOP+ss.length*STEP_H+PAD_BOT,dotY=svgH-PAD_BOT,SPREAD=STEP_H*0.55,SW=Math.max(1.2,LW*0.6);let out='';out+=`<line x1="${CX}" y1="${PAD_TOP}" x2="${CX}" y2="${dotY}" stroke="#1a1a1a" stroke-width="${LW}" stroke-linecap="round"/>`;out+=`<circle cx="${CX}" cy="${dotY}" r="${DOT_R}" fill="#1a1a1a"/>`;ss.forEach((step,i)=>{const crossY=dotY-DOT_R*2-(i+0.5)*STEP_H,col=selIdx===i?'#378ADD':'#1a1a1a',lc=step.left||0,rc=step.right||0;if(lc===1){out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${(CX-TICK_LEN).toFixed(1)}" y2="${crossY.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"/>`;}else if(lc>1){for(let l=0;l<lc;l++){const t=l/(lc-1),endY=crossY-SPREAD/2+t*SPREAD;out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${(CX-TICK_LEN).toFixed(1)}" y2="${endY.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"/>`;}}if(rc===1){out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${(CX+TICK_LEN).toFixed(1)}" y2="${crossY.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"/>`;}else if(rc>1){for(let r=0;r<rc;r++){const t=r/(rc-1),endY=crossY-SPREAD/2+t*SPREAD;out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${(CX+TICK_LEN).toFixed(1)}" y2="${endY.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"/>`;}}if(showNumbers){const numCol=selIdx===i?'#378ADD':'#aaa';out+=`<text x="${CX+TICK_LEN+6}" y="${(crossY+4).toFixed(1)}" font-size="${Math.max(8,LW*3.5)}" font-family="DM Sans,sans-serif" font-weight="500" fill="${numCol}">${i+1}</text>`;}if(clickable)out+=`<rect x="0" y="${(crossY-STEP_H/2).toFixed(1)}" width="${W}" height="${STEP_H}" fill="transparent" style="cursor:pointer" onclick="stripPick(${i})"/>`;});return`<svg width="${W}" height="${svgH}" viewBox="0 0 ${W} ${svgH}" fill="none">${out}</svg>`;}
+// Shared fan geometry — used both to draw the strip ticks and to compute how
+// much vertical padding the card needs, so the two calculations never drift apart.
+function stripFanGeom(STEP_H,TICK_LEN){
+  const FAN_DEG=90,FAN_RAD=FAN_DEG*Math.PI/180;
+  const fanLen=Math.min(TICK_LEN,STEP_H*0.56/Math.sin(FAN_RAD/2));
+  const fanReach=fanLen*Math.sin(FAN_RAD/2);
+  return{FAN_RAD,fanLen,fanReach};
+}
+// Safely read whether one specific line (by side + index) is set to dashed.
+function stripLineDashed(step,side,idx){
+  const arr=step&&step[side+'Dash'];
+  return !!(arr&&arr[idx]);
+}
+// Isolated, enlarged view of just ONE step's lines (a visual "copy", not the
+// real strip) with a number near each line's tip, so it's clear which
+// numbered checkbox below belongs to which physical line.
+function stripStepDetailSvg(step,sz){
+  const cx=sz/2,cy=sz/2;
+  const lc=step.left||0,rc=step.right||0;
+  const spineLen=sz*0.14,tickLen=sz*0.3;
+  const FAN_DEG=90,FAN_RAD=FAN_DEG*Math.PI/180;
+  const DASH=`${(sz*0.028).toFixed(1)},${(sz*0.022).toFixed(1)}`;
+  let out=`<line x1="${cx}" y1="${(cy-spineLen).toFixed(1)}" x2="${cx}" y2="${(cy+spineLen).toFixed(1)}" stroke="#ccc" stroke-width="2" stroke-linecap="round"/>`;
+  out+=`<circle cx="${cx}" cy="${cy}" r="${(sz*0.025).toFixed(1)}" fill="#1a1a1a"/>`;
+  function drawSide(count,sign,dashKey){
+    for(let idx=0;idx<count;idx++){
+      const t=count>1?idx/(count-1):0.5;
+      const theta=count>1?(-FAN_RAD/2+t*FAN_RAD):0;
+      const ex=cx+sign*Math.cos(theta)*tickLen,ey=cy+Math.sin(theta)*tickLen;
+      const dashed=stripLineDashed(step,dashKey,idx);
+      const dashAttr=dashed?` stroke-dasharray="${DASH}"`:'';
+      out+=`<line x1="${cx}" y1="${cy.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="#378ADD" stroke-width="${(sz*0.022).toFixed(1)}" stroke-linecap="round"${dashAttr}/>`;
+      const lx=cx+sign*Math.cos(theta)*(tickLen+sz*0.1),ly=cy+Math.sin(theta)*(tickLen+sz*0.1);
+      out+=`<text x="${lx.toFixed(1)}" y="${(ly+sz*0.03).toFixed(1)}" text-anchor="middle" font-size="${(sz*0.09).toFixed(1)}" font-family="DM Sans,sans-serif" font-weight="700" fill="#666">${idx+1}</text>`;
+    }
+  }
+  drawSide(lc,-1,'left');
+  drawSide(rc,1,'right');
+  return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" fill="none" xmlns="http://www.w3.org/2000/svg">${out}</svg>`;
+}
+function drawStrip(ss,CX,STEP_H,TICK_LEN,LW,DOT_R,PAD_TOP,PAD_BOT,W,selIdx,clickable,showNumbers){
+const{FAN_RAD,fanLen,fanReach}=stripFanGeom(STEP_H,TICK_LEN);
+// The topmost step has less natural headroom than the others (its center line
+// sits close to the top edge), so make sure the top padding is always big
+// enough to contain the widest fan there too, however PAD_TOP was set.
+const effPadTop=Math.max(PAD_TOP,fanReach-STEP_H*0.5+DOT_R*2+STEP_H*0.1);
+const svgH=effPadTop+ss.length*STEP_H+PAD_BOT,dotY=svgH-PAD_BOT,SW=Math.max(1.2,LW*0.6);
+const DASH=`${(SW*2.2).toFixed(1)},${(SW*1.8).toFixed(1)}`;
+let out='';out+=`<line x1="${CX}" y1="${effPadTop.toFixed(1)}" x2="${CX}" y2="${dotY}" stroke="#1a1a1a" stroke-width="${LW}" stroke-linecap="round"/>`;out+=`<circle cx="${CX}" cy="${dotY}" r="${DOT_R}" fill="#1a1a1a"/>`;ss.forEach((step,i)=>{const crossY=dotY-DOT_R*2-(i+0.5)*STEP_H,col=selIdx===i?'#378ADD':'#1a1a1a',lc=step.left||0,rc=step.right||0;if(lc===1){const dash=stripLineDashed(step,'left',0)?` stroke-dasharray="${DASH}"`:'';out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${(CX-TICK_LEN).toFixed(1)}" y2="${crossY.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"${dash}/>`;}else if(lc>1){for(let l=0;l<lc;l++){const t=l/(lc-1),theta=-FAN_RAD/2+t*FAN_RAD,ex=CX-Math.cos(theta)*fanLen,ey=crossY+Math.sin(theta)*fanLen;const dash=stripLineDashed(step,'left',l)?` stroke-dasharray="${DASH}"`:'';out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"${dash}/>`;}}if(rc===1){const dash=stripLineDashed(step,'right',0)?` stroke-dasharray="${DASH}"`:'';out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${(CX+TICK_LEN).toFixed(1)}" y2="${crossY.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"${dash}/>`;}else if(rc>1){for(let r=0;r<rc;r++){const t=r/(rc-1),theta=-FAN_RAD/2+t*FAN_RAD,ex=CX+Math.cos(theta)*fanLen,ey=crossY+Math.sin(theta)*fanLen;const dash=stripLineDashed(step,'right',r)?` stroke-dasharray="${DASH}"`:'';out+=`<line x1="${CX}" y1="${crossY.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${col}" stroke-width="${SW}" stroke-linecap="round"${dash}/>`;}}if(showNumbers){const numCol=selIdx===i?'#378ADD':'#aaa';out+=`<text x="${CX+TICK_LEN+6}" y="${(crossY+4).toFixed(1)}" font-size="${Math.max(8,LW*3.5)}" font-family="DM Sans,sans-serif" font-weight="500" fill="${numCol}">${i+1}</text>`;}if(clickable)out+=`<rect x="0" y="${(crossY-STEP_H/2).toFixed(1)}" width="${W}" height="${STEP_H}" fill="transparent" style="cursor:pointer" onclick="stripPick(${i})"/>`;});return`<svg width="${W}" height="${svgH}" viewBox="0 0 ${W} ${svgH}" fill="none">${out}</svg>`;}
 function stripSvg(ss,sz,si){const sc=sz/140,CX=sz/2,SH=22*sc,TL=22*sc,LW=2.5*sc,DR=5*sc,PT=8*sc,PB=8*sc;return drawStrip(ss,CX,SH,TL,LW,DR,PT,PB,sz,si,false,false);}
 function stripLargeSvg(ss,si){return drawStrip(ss,70,54,30,3,6,24,28,180,si,true,true);}
 
@@ -777,6 +917,8 @@ const VEHICLES=[
   {id:'fiets',name:'Fiets'},
   {id:'voet',name:'Voetganger'},
   {id:'bus',name:'Bus'},
+  {id:'paard',name:'Paard'},
+  {id:'leeg',name:'Geen (leeg)'},
 ];
 function vehiclePath(id,cx,cy,sc,col){
   // simple silhouettes centered at cx,cy, roughly sc px wide
@@ -819,8 +961,126 @@ function vehiclePath(id,cx,cy,sc,col){
       <rect x="24" y="38" width="16" height="12" fill="white"/><rect x="44" y="38" width="16" height="12" fill="white"/><rect x="64" y="38" width="12" height="12" fill="white"/>
       <circle cx="34" cy="68" r="6" fill="${col}"/><circle cx="66" cy="68" r="6" fill="${col}"/>
     </g>`;
+  } else if(id==='paard'){
+    return `<g transform="translate(${cx},${cy}) scale(${s}) translate(-50,-50)">
+      <rect x="27.5" y="22.5" width="45" height="17.5" rx="8" fill="${col}"/>
+      <path d="M67.5,24 C72.5,17.5 77.5,11 83,8 L86,7 C91,8 96,13 100,20 L99.5,23 C95,25 90,25 86,23 C81.5,22 77.5,25 74,28 L69,31 C66.5,29 66,26 67.5,24 Z" fill="${col}"/>
+      <polygon points="81.5,8.5 79.5,2 84.5,7" fill="${col}"/>
+      <path d="M84,7 L81.5,3 L79.5,8 L76.5,5 L75,10 L71.5,8 L70.5,13 L67,12 L66.5,17 L63.5,17 L65,22 L67.5,23 L69,20 L71,16 L74,13 L77,10 L80,8.5 Z" fill="${col}"/>
+      <path d="M27.5,25 C20,24 12.5,27.5 9,34 C7,38 7.5,43 10,47 C12.5,45 13,40 16,36 C20,32 24,29 27.5,27.5 Z" fill="${col}"/>
+      <path d="M56.5,38 L61.5,38 L61,61 L62.5,61 L62.5,64 L55.5,64 L55.5,61 L57,61 Z" fill="${col}"/>
+      <path d="M63.5,38 L68.5,38 L68,61 L69.5,61 L69.5,64 L62.5,64 L62.5,61 L64,61 Z" fill="${col}"/>
+      <path d="M28.5,38 L33.5,38 L33,61 L34.5,61 L34.5,64 L27.5,64 L27.5,61 L29,61 Z" fill="${col}"/>
+      <path d="M35.5,38 L40.5,38 L40,61 L41.5,61 L41.5,64 L34.5,64 L34.5,61 L36,61 Z" fill="${col}"/>
+    </g>`;
+  } else if(id==='leeg'){
+    return'';
   }
   return'';
+}
+
+// ── Symbolen — losse landmark-iconen op een straat ─────────────────────────────
+const SYMBOLS=[
+  {id:'kerk',name:'Kerk'},
+  {id:'brug',name:'Brug'},
+  {id:'bushalte',name:'Bushalte'},
+  {id:'hek',name:'Hek'},
+  {id:'standbeeld',name:'Standbeeld'},
+];
+function symbolSvg(id,sz){
+  const BK='#1a1a1a',WH='#ffffff';
+  const cx=sz/2,cy=sz/2;
+  let out='';
+  if(id==='kerk'){
+    const bw=sz*0.5,bh=sz*0.32,bx=cx-bw/2,by=cy+sz*0.14;
+    out+=`<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${BK}"/>`;
+    out+=`<polygon points="${(cx-bw*0.55).toFixed(1)},${by.toFixed(1)} ${cx.toFixed(1)},${(by-sz*0.14).toFixed(1)} ${(cx+bw*0.55).toFixed(1)},${by.toFixed(1)}" fill="${BK}"/>`;
+    const stx=cx-sz*0.06,sty=by-sz*0.14-sz*0.22,stw=sz*0.12,sth=sz*0.22;
+    out+=`<rect x="${stx.toFixed(1)}" y="${sty.toFixed(1)}" width="${stw.toFixed(1)}" height="${sth.toFixed(1)}" fill="${BK}"/>`;
+    out+=`<polygon points="${stx.toFixed(1)},${sty.toFixed(1)} ${cx.toFixed(1)},${(sty-sz*0.1).toFixed(1)} ${(stx+stw).toFixed(1)},${sty.toFixed(1)}" fill="${BK}"/>`;
+    const crossY=sty-sz*0.1-sz*0.02;
+    out+=`<line x1="${cx.toFixed(1)}" y1="${(crossY-sz*0.12).toFixed(1)}" x2="${cx.toFixed(1)}" y2="${crossY.toFixed(1)}" stroke="${BK}" stroke-width="${(sz*0.025).toFixed(1)}"/>`;
+    out+=`<line x1="${(cx-sz*0.04).toFixed(1)}" y1="${(crossY-sz*0.08).toFixed(1)}" x2="${(cx+sz*0.04).toFixed(1)}" y2="${(crossY-sz*0.08).toFixed(1)}" stroke="${BK}" stroke-width="${(sz*0.025).toFixed(1)}"/>`;
+    out+=`<rect x="${(cx-sz*0.05).toFixed(1)}" y="${(by+bh-sz*0.14).toFixed(1)}" width="${(sz*0.1).toFixed(1)}" height="${(sz*0.14).toFixed(1)}" fill="${WH}"/>`;
+  } else if(id==='brug'){
+    const deckW=sz*0.6;
+    out+=`<line x1="${(cx-deckW/2).toFixed(1)}" y1="${cy.toFixed(1)}" x2="${(cx+deckW/2).toFixed(1)}" y2="${cy.toFixed(1)}" stroke="${BK}" stroke-width="${(sz*0.045).toFixed(1)}" stroke-linecap="round"/>`;
+    out+=`<line x1="${(cx-deckW*0.32).toFixed(1)}" y1="${cy.toFixed(1)}" x2="${(cx-deckW*0.32).toFixed(1)}" y2="${(cy+sz*0.2).toFixed(1)}" stroke="${BK}" stroke-width="${(sz*0.04).toFixed(1)}"/>`;
+    out+=`<line x1="${(cx+deckW*0.32).toFixed(1)}" y1="${cy.toFixed(1)}" x2="${(cx+deckW*0.32).toFixed(1)}" y2="${(cy+sz*0.2).toFixed(1)}" stroke="${BK}" stroke-width="${(sz*0.04).toFixed(1)}"/>`;
+    out+=`<path d="M${(cx-deckW*0.34).toFixed(1)} ${cy.toFixed(1)} Q${cx.toFixed(1)} ${(cy-sz*0.22).toFixed(1)} ${(cx+deckW*0.34).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${BK}" stroke-width="${(sz*0.035).toFixed(1)}"/>`;
+  } else if(id==='bushalte'){
+    out+=`<line x1="${cx.toFixed(1)}" y1="${(cy-sz*0.05).toFixed(1)}" x2="${cx.toFixed(1)}" y2="${(cy+sz*0.32).toFixed(1)}" stroke="${BK}" stroke-width="${(sz*0.035).toFixed(1)}"/>`;
+    const signW=sz*0.4,signH=sz*0.3,signX=cx-signW/2,signY=cy-sz*0.32;
+    out+=`<rect x="${signX.toFixed(1)}" y="${signY.toFixed(1)}" width="${signW.toFixed(1)}" height="${signH.toFixed(1)}" rx="${(sz*0.03).toFixed(1)}" fill="${BK}"/>`;
+    out+=`<rect x="${(signX+signW*0.15).toFixed(1)}" y="${(signY+signH*0.2).toFixed(1)}" width="${(signW*0.7).toFixed(1)}" height="${(signH*0.35).toFixed(1)}" fill="${WH}"/>`;
+    out+=`<circle cx="${(signX+signW*0.3).toFixed(1)}" cy="${(signY+signH*0.75).toFixed(1)}" r="${(sz*0.025).toFixed(1)}" fill="${WH}"/>`;
+    out+=`<circle cx="${(signX+signW*0.7).toFixed(1)}" cy="${(signY+signH*0.75).toFixed(1)}" r="${(sz*0.025).toFixed(1)}" fill="${WH}"/>`;
+  } else if(id==='hek'){
+    const fw=sz*0.55,fx=cx-fw/2,topY=cy-sz*0.14,botY=cy+sz*0.18;
+    for(let i=0;i<4;i++){
+      const px2=fx+i*(fw/3);
+      out+=`<line x1="${px2.toFixed(1)}" y1="${(topY-sz*0.03).toFixed(1)}" x2="${px2.toFixed(1)}" y2="${botY.toFixed(1)}" stroke="${BK}" stroke-width="${(sz*0.03).toFixed(1)}" stroke-linecap="round"/>`;
+    }
+    out+=`<line x1="${fx.toFixed(1)}" y1="${(topY+sz*0.06).toFixed(1)}" x2="${(fx+fw).toFixed(1)}" y2="${(topY+sz*0.06).toFixed(1)}" stroke="${BK}" stroke-width="${(sz*0.025).toFixed(1)}"/>`;
+    out+=`<line x1="${fx.toFixed(1)}" y1="${(botY-sz*0.05).toFixed(1)}" x2="${(fx+fw).toFixed(1)}" y2="${(botY-sz*0.05).toFixed(1)}" stroke="${BK}" stroke-width="${(sz*0.025).toFixed(1)}"/>`;
+  } else if(id==='standbeeld'){
+    const baseW=sz*0.5,base2W=sz*0.34,baseH=sz*0.11,base2H=sz*0.09;
+    const baseY=cy+sz*0.28;
+    // bottom tier (wider, straight rectangle)
+    out+=`<rect x="${(cx-baseW/2).toFixed(1)}" y="${baseY.toFixed(1)}" width="${baseW.toFixed(1)}" height="${baseH.toFixed(1)}" fill="${BK}"/>`;
+    // top tier (narrower, straight rectangle) sitting right on the bottom one
+    const base2Y=baseY-base2H;
+    out+=`<rect x="${(cx-base2W/2).toFixed(1)}" y="${base2Y.toFixed(1)}" width="${base2W.toFixed(1)}" height="${base2H.toFixed(1)}" fill="${BK}"/>`;
+    // stick figure standing on top of the pedestal
+    const standY=base2Y,headR=sz*0.055,lw2=Math.max(1,sz*0.028);
+    const headCy=standY-sz*0.32+headR,bodyBottom=standY-sz*0.06,armY=headCy+headR+sz*0.05;
+    out+=`<circle cx="${cx.toFixed(1)}" cy="${headCy.toFixed(1)}" r="${headR.toFixed(1)}" fill="none" stroke="${BK}" stroke-width="${lw2.toFixed(1)}"/>`;
+    out+=`<line x1="${cx.toFixed(1)}" y1="${(headCy+headR).toFixed(1)}" x2="${cx.toFixed(1)}" y2="${bodyBottom.toFixed(1)}" stroke="${BK}" stroke-width="${lw2.toFixed(1)}" stroke-linecap="round"/>`;
+    out+=`<line x1="${cx.toFixed(1)}" y1="${armY.toFixed(1)}" x2="${(cx-sz*0.1).toFixed(1)}" y2="${(armY+sz*0.09).toFixed(1)}" stroke="${BK}" stroke-width="${lw2.toFixed(1)}" stroke-linecap="round"/>`;
+    out+=`<line x1="${cx.toFixed(1)}" y1="${armY.toFixed(1)}" x2="${(cx+sz*0.1).toFixed(1)}" y2="${(armY+sz*0.09).toFixed(1)}" stroke="${BK}" stroke-width="${lw2.toFixed(1)}" stroke-linecap="round"/>`;
+    out+=`<line x1="${cx.toFixed(1)}" y1="${bodyBottom.toFixed(1)}" x2="${(cx-sz*0.07).toFixed(1)}" y2="${standY.toFixed(1)}" stroke="${BK}" stroke-width="${lw2.toFixed(1)}" stroke-linecap="round"/>`;
+    out+=`<line x1="${cx.toFixed(1)}" y1="${bodyBottom.toFixed(1)}" x2="${(cx+sz*0.07).toFixed(1)}" y2="${standY.toFixed(1)}" stroke="${BK}" stroke-width="${lw2.toFixed(1)}" stroke-linecap="round"/>`;
+  }
+  return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" fill="none" xmlns="http://www.w3.org/2000/svg">${out}</svg>`;
+}
+let _symbolDDopen=false;
+function toggleSymbolDD(e){e.stopPropagation();_symbolDDopen=!_symbolDDopen;renderD();}
+function setSymbol(id){
+  if(sel===null)return;
+  steps[sel].junc_symbol=id||null;
+  _symbolDDopen=false;
+  renderD();
+}
+function setSymbolSide(v){if(sel===null)return;steps[sel].junc_symbol_side=v;renderD();}
+function addSymbolToStreet(){
+  if(sel===null)return;
+  const s=steps[sel];
+  if(!s.junc_symbol)return;
+  const lbl=document.getElementById('symbol-street-sel')?.value;
+  if(!lbl)return;
+  const m=lbl.match(/^(\d+)([A-Z]?)$/);
+  if(!m)return;
+  const si=parseInt(m[1])-1;
+  const sym={id:s.junc_symbol,side:s.junc_symbol_side==='L'?'L':'R'};
+  if(m[2]){
+    const ci=m[2].charCodeAt(0)-65;
+    const ch=s.junc_streets[si]?.children?.[ci];
+    if(ch){if(!ch.symbols)ch.symbols=[];ch.symbols.push(sym);}
+  } else {
+    const st=s.junc_streets[si];
+    if(st){if(!st.symbols)st.symbols=[];st.symbols.push(sym);}
+  }
+  render();renderD();
+}
+function removeSymbolFromStreet(si,ci,k){
+  if(sel===null)return;
+  const s=steps[sel];
+  if(ci===null){
+    s.junc_streets[si].symbols.splice(k,1);
+  } else {
+    s.junc_streets[si].children[ci].symbols.splice(k,1);
+  }
+  render();renderD();
 }
 
 const SIGNS=[
@@ -843,6 +1103,7 @@ const SIGNS=[
   {id:'c3', serie:'C', name:'Eenrichting (rechtdoor)',shape:'oneway', dir:'up'},
   {id:'c4', serie:'C', name:'Eenrichting (links)',   shape:'oneway', dir:'left'},
   {id:'c5', serie:'C', name:'Eenrichting (rechts)',  shape:'oneway', dir:'right'},
+  {id:'c6', serie:'C', name:'Gesloten voor alle verkeer', shape:'closed-all'},
   // D-serie (gebod / rijrichting)
   {id:'d1', serie:'D', name:'Rotonde',                  shape:'roundabout'},
   {id:'d2', serie:'D', name:'Verplichte richting (rechtdoor)', shape:'mandatory', dir:'up'},
@@ -888,6 +1149,123 @@ const SIGNS=[
   {id:'n1', serie:'N', name:'Straatnaam',            type:'streetname'},
 ];
 
+// ── Reusable: wrap arbitrary text into multiple <text> lines that fit a box ────
+// Shrinks font size and wraps on word boundaries using canvas measurement, so any
+// free-typed text (lantern, sign labels, etc.) auto-fits instead of overflowing.
+let _wrapCtx=null;
+function svgWrapLines(txt,maxW,maxH,startFs,fontFamily,fontWeight){
+  if(!txt)return{lines:[],fs:startFs};
+  if(!_wrapCtx)_wrapCtx=document.createElement('canvas').getContext('2d');
+  const ctx=_wrapCtx;
+  let fs=startFs;
+  let lines=[];
+  const paras=String(txt).split('\n');
+  function wrapAt(size){
+    ctx.font=`${fontWeight||600} ${size}px ${fontFamily||"'DM Sans',Arial,sans-serif"}`;
+    const out=[];
+    paras.forEach(para=>{
+      const words=para.split(' ');
+      let cur='';
+      words.forEach(word=>{
+        const test=cur?cur+' '+word:word;
+        if(ctx.measureText(test).width>maxW&&cur){out.push(cur);cur=word;}
+        else cur=test;
+      });
+      out.push(cur);
+    });
+    return out;
+  }
+  let guard=0;
+  lines=wrapAt(fs);
+  while((lines.length*fs*1.2>maxH||Math.max(...lines.map(l=>ctx.measureText(l).width))>maxW)&&fs>6&&guard<80){
+    fs-=1;lines=wrapAt(fs);guard++;
+  }
+  return{lines,fs};
+}
+function svgTextBlock(txt,cx,cy,maxW,maxH,startFs,col,fontFamily,fontWeight){
+  const{lines,fs}=svgWrapLines(txt,maxW,maxH,startFs,fontFamily,fontWeight);
+  if(!lines.length)return'';
+  const lineH=fs*1.2;
+  const totalH=lines.length*lineH;
+  const startY=cy-totalH/2+fs*0.82;
+  let out='';
+  lines.forEach((ln,i)=>{
+    out+=`<text x="${cx}" y="${(startY+i*lineH).toFixed(1)}" text-anchor="middle" font-size="${fs.toFixed(1)}" font-family="${fontFamily||"DM Sans,sans-serif"}" font-weight="${fontWeight||600}" fill="${col}">${String(ln).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>`;
+  });
+  return out;
+}
+
+// ── Straattekst — vrije tekstlabels op een straat (los van verkeersborden) ─────
+function textLabelSvg(text,w,h){
+  h=h||w;
+  const BK='#1a1a1a';
+  const cx=w/2,cy=h/2;
+  const inner=svgTextBlock(text||'',cx,cy,w*0.94,h*0.9,Math.min(w,h)*0.62,BK,"DM Sans,sans-serif",700);
+  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+}
+function setTextValue(v){if(sel===null)return;steps[sel].junc_text_value=v;render();}
+function setTextSide(v){if(sel===null)return;steps[sel].junc_text_side=v;renderD();}
+function addTextToStreet(){
+  if(sel===null)return;
+  const s=steps[sel];
+  const txt=(s.junc_text_value||'').trim();
+  if(!txt)return;
+  const lbl=document.getElementById('text-street-sel')?.value;
+  if(!lbl)return;
+  const m=lbl.match(/^(\d+)([A-Z]?)$/);
+  if(!m)return;
+  const si=parseInt(m[1])-1;
+  const entry={text:txt,side:s.junc_text_side==='L'?'L':'R'};
+  if(m[2]){
+    const ci=m[2].charCodeAt(0)-65;
+    const ch=s.junc_streets[si]?.children?.[ci];
+    if(ch){if(!ch.texts)ch.texts=[];ch.texts.push(entry);}
+  } else {
+    const st=s.junc_streets[si];
+    if(st){if(!st.texts)st.texts=[];st.texts.push(entry);}
+  }
+  render();renderD();
+}
+function removeTextFromStreet(si,ci,k){
+  if(sel===null)return;
+  const s=steps[sel];
+  if(ci===null){
+    s.junc_streets[si].texts.splice(k,1);
+  } else {
+    s.junc_streets[si].children[ci].texts.splice(k,1);
+  }
+  render();renderD();
+}
+function applyDashToStreet(){
+  if(sel===null)return;
+  const s=steps[sel];
+  const lbl=document.getElementById('dash-street-sel')?.value;
+  if(!lbl)return;
+  const m=lbl.match(/^(\d+)([A-Z]?)$/);
+  if(!m)return;
+  const si=parseInt(m[1])-1;
+  if(m[2]){
+    const ci=m[2].charCodeAt(0)-65;
+    const ch=s.junc_streets[si]?.children?.[ci];
+    if(ch)ch.isDashedLine=true;
+  } else {
+    const st=s.junc_streets[si];
+    if(st)st.isDashedLine=true;
+  }
+  render();renderD();
+}
+function removeDashFromStreet(si,ci){
+  if(sel===null)return;
+  const s=steps[sel];
+  if(ci===null){
+    if(s.junc_streets[si])s.junc_streets[si].isDashedLine=false;
+  } else {
+    const ch=s.junc_streets[si]?.children?.[ci];
+    if(ch)ch.isDashedLine=false;
+  }
+  render();renderD();
+}
+
 function signSvg(id,sz,opts){
   const s=SIGNS.find(x=>x.id===id);
   if(!s)return'';
@@ -920,6 +1298,10 @@ function signSvg(id,sz,opts){
     out+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${WH}" stroke="${RED}" stroke-width="${lw*1.6}"/>`;
     const v=opts.vehicle||'auto';
     out+=vehiclePath(v,cx,cy,sz*0.6,BK);
+  }
+  // ── Gesloten voor alle verkeer (plain, no vehicle icon) ──
+  else if(s.shape==='closed-all'){
+    out+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${WH}" stroke="${RED}" stroke-width="${lw*1.6}"/>`;
   }
   // ── shapes ──
   else if(s.shape==='diamond'){
@@ -1044,16 +1426,16 @@ function signSvg(id,sz,opts){
   // ── H-serie place name ──
   else if(s.type==='place'){
     const txt=opts.place||'Plaats';
-    const fs=sz*0.18;
-    out+=`<rect x="${m*0.5}" y="${cy-sz*0.18}" width="${sz-m}" height="${sz*0.36}" rx="${sz*0.03}" fill="${BLUE}" stroke="${BK}" stroke-width="${lw*0.7}"/>`;
-    out+=`<text x="${cx}" y="${cy+fs*0.36}" text-anchor="middle" font-size="${fs}" font-family="DM Sans,sans-serif" font-weight="700" fill="${WH}">${txt}</text>`;
+    const boxH=sz*0.36,boxW=sz-m;
+    out+=`<rect x="${m*0.5}" y="${cy-boxH/2}" width="${boxW}" height="${boxH}" rx="${sz*0.03}" fill="${BLUE}" stroke="${BK}" stroke-width="${lw*0.7}"/>`;
+    out+=svgTextBlock(txt,cx,cy,boxW*0.88,boxH*0.8,sz*0.18,WH,"DM Sans,sans-serif",700);
   }
   // ── N-serie street name ──
   else if(s.type==='streetname'){
     const txt=opts.street||'Straat';
-    const fs=sz*0.15;
-    out+=`<rect x="${m*0.4}" y="${cy-sz*0.16}" width="${sz-m*0.8}" height="${sz*0.32}" rx="${sz*0.04}" fill="${BLUE}" stroke="${WH}" stroke-width="${lw*0.6}"/>`;
-    out+=`<text x="${cx}" y="${cy+fs*0.36}" text-anchor="middle" font-size="${fs}" font-family="DM Sans,sans-serif" font-weight="700" fill="${WH}">${txt}</text>`;
+    const boxH=sz*0.32,boxW=sz-m*0.8;
+    out+=`<rect x="${m*0.4}" y="${cy-boxH/2}" width="${boxW}" height="${boxH}" rx="${sz*0.04}" fill="${BLUE}" stroke="${WH}" stroke-width="${lw*0.6}"/>`;
+    out+=svgTextBlock(txt,cx,cy,boxW*0.86,boxH*0.8,sz*0.15,WH,"DM Sans,sans-serif",700);
   }
   // ── G-serie woonerf ──
   else if(s.shape==='woonerf'){
@@ -1098,7 +1480,7 @@ function signSvg(id,sz,opts){
       const sx=scx+Math.sin(a)*starR, sy=scy-Math.cos(a)*starR;
       out+=drawStar(sx,sy,sz*0.05,'#F5C800');
     }
-    if(txt)out+=`<text x="${cx}" y="${cy+r*0.74}" text-anchor="middle" font-size="${sz*0.16}" font-family="DM Sans,sans-serif" font-weight="700" fill="${WH}">${txt}</text>`;
+    if(txt)out+=svgTextBlock(txt,cx,cy+r*0.6,(sz-m)*0.86,sz*0.22,sz*0.16,WH,"DM Sans,sans-serif",700);
   }
   return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" fill="none" xmlns="http://www.w3.org/2000/svg">${out}</svg>`;
 }
@@ -1119,9 +1501,7 @@ function signGlyph(g,cx,cy,sc,col){
   const s=sc/100;
   if(g==='voet')return vehiclePath('voet',cx,cy,sc,col);
   if(g==='fiets')return vehiclePath('fiets',cx,cy,sc,col);
-  if(g==='paard'){
-    return `<g transform="translate(${cx},${cy}) scale(${s}) translate(-50,-50)"><path d="M30 70 L35 45 Q38 35 50 35 L62 38 Q70 40 72 32 L76 36 Q74 48 62 48 L55 47 L52 58 L60 72 L52 72 L46 60 L42 72 L34 72 Z" fill="${col}"/></g>`;
-  }
+  if(g==='paard')return vehiclePath('paard',cx,cy,sc,col);
   if(g==='bump')return `<path d="M${cx-sc*0.4} ${cy+sc*0.15} Q${cx} ${cy-sc*0.3} ${cx+sc*0.4} ${cy+sc*0.15}" fill="none" stroke="${col}" stroke-width="${sc*0.1}" stroke-linecap="round"/>`;
   if(g==='cross')return `<rect x="${cx-sc*0.06}" y="${cy-sc*0.4}" width="${sc*0.12}" height="${sc*0.8}" fill="${col}"/><rect x="${cx-sc*0.4}" y="${cy-sc*0.06}" width="${sc*0.8}" height="${sc*0.12}" fill="${col}"/>`;
   if(g==='round'){
@@ -1166,6 +1546,7 @@ function setSignVehicle(v){if(sel===null)return;steps[sel].junc_sign_vehicle=v;r
 function setSignPlace(v){if(sel===null)return;steps[sel].junc_sign_place=v;render();}
 function setSignStreet(v){if(sel===null)return;steps[sel].junc_sign_street=v;render();}
 function setSignBorder(v){if(sel===null)return;steps[sel].junc_sign_border=v;render();}
+function setSignSide(v){if(sel===null)return;steps[sel].junc_sign_side=v;renderD();}
 function signOpts(s){return{speed:s.junc_sign_speed||'50',vehicle:s.junc_sign_vehicle||'auto',place:s.junc_sign_place||'Plaats',street:s.junc_sign_street||'Straat',border:s.junc_sign_border||'Grens'};}
 function addSignToStreet(){
   if(sel===null)return;
@@ -1173,7 +1554,7 @@ function addSignToStreet(){
   if(!s.junc_sign)return;
   const lbl=document.getElementById('sign-street-sel')?.value;
   if(!lbl)return;
-  const sign={id:s.junc_sign,opts:signOpts(s)};
+  const sign={id:s.junc_sign,opts:signOpts(s),side:s.junc_sign_side==='L'?'L':'R'};
   // parse label like "1" or "1A"
   const m=lbl.match(/^(\d+)([A-Z]?)$/);
   if(!m)return;
@@ -1222,7 +1603,8 @@ function juncSvg(streets,sz){
   return`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" fill="none" xmlns="http://www.w3.org/2000/svg">${out}</svg>`;
 }
 
-function juncSvgCard(streets, sz) {
+function juncSvgCard(streets, sz, opts) {
+  opts=opts||{};
   const cx=sz/2,cy=sz/2,Lm=sz*0.35,Lc=sz*0.22,hw=sz*0.09,lw=Math.max(1,sz*0.022),col='#1a1a1a';
   function edge(a,side,ocx,ocy){const r=a*Math.PI/180,s=side==='L'?1:-1;return{ox:ocx+(-Math.cos(r))*hw*s,oy:ocy+(-Math.sin(r))*hw*s,dx:Math.sin(r),dy:-Math.cos(r)};}
   function isect(e1,e2){const c=e1.dx*e2.dy-e1.dy*e2.dx;if(Math.abs(c)<1e-9)return null;const t=((e2.ox-e1.ox)*e2.dy-(e2.oy-e1.oy)*e2.dx)/c;return{x:e1.ox+t*e1.dx,y:e1.oy+t*e1.dy};}
@@ -1236,15 +1618,26 @@ function juncSvgCard(streets, sz) {
       const sL=isect(eL,edge(sorted[prev].angle,'R',ocx,ocy))||{x:eL.ox,y:eL.oy};
       const sR=isect(eR,edge(sorted[next].angle,'L',ocx,ocy))||{x:eR.ox,y:eR.oy};
       const tL={x:eL.ox+dx*L,y:eL.oy+dy*L},tR={x:eR.ox+dx*L,y:eR.oy+dy*L};
-      out+=`<line x1="${sL.x.toFixed(2)}" y1="${sL.y.toFixed(2)}" x2="${tL.x.toFixed(2)}" y2="${tL.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="butt"/>`;
-      out+=`<line x1="${sR.x.toFixed(2)}" y1="${sR.y.toFixed(2)}" x2="${tR.x.toFixed(2)}" y2="${tR.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="butt"/>`;
+      const dashAttr=sorted[i].isDashedLine?` stroke-dasharray="${(lw*2.4).toFixed(1)},${(lw*1.8).toFixed(1)}"`:'';
+      out+=`<line x1="${sL.x.toFixed(2)}" y1="${sL.y.toFixed(2)}" x2="${tL.x.toFixed(2)}" y2="${tL.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="butt"${dashAttr}/>`;
+      out+=`<line x1="${sR.x.toFixed(2)}" y1="${sR.y.toFixed(2)}" x2="${tR.x.toFixed(2)}" y2="${tR.y.toFixed(2)}" stroke="${col}" stroke-width="${lw}" stroke-linecap="butt"${dashAttr}/>`;
       if(sorted[i].isArrow){const ae=L*0.8,hl=sz*0.07,hw2=sz*0.05;const ax1=ocx+dx*sz*0.03,ay1=ocy+dy*sz*0.03,ax2=ocx+dx*ae,ay2=ocy+dy*ae,abx=ocx+dx*(ae-hl),aby=ocy+dy*(ae-hl);out+=`<line x1="${ax1.toFixed(1)}" y1="${ay1.toFixed(1)}" x2="${abx.toFixed(1)}" y2="${aby.toFixed(1)}" stroke="#378ADD" stroke-width="${(sz*0.022).toFixed(1)}" stroke-linecap="round"/>`;out+=`<polygon points="${ax2.toFixed(1)},${ay2.toFixed(1)} ${(abx+px*hw2).toFixed(1)},${(aby+py*hw2).toFixed(1)} ${(abx-px*hw2).toFixed(1)},${(aby-py*hw2).toFixed(1)}" fill="#378ADD"/>`;}
     }
     return out;
   }
-  const mainRoads=[{angle:180,isArrow:false},...streets.map(s=>({angle:s.angle,isArrow:s.isArrow&&!(s.children&&s.children.length)}))];
+  const mainRoads=[{angle:180,isArrow:false,isDashedLine:false},...streets.map(s=>({angle:s.angle,isArrow:s.isArrow&&!(s.children&&s.children.length),isDashedLine:s.isDashedLine}))];
   let out=drawJ(mainRoads,cx,cy,Lm);
   out+=`<circle cx="${cx}" cy="${(cy+Lm).toFixed(1)}" r="${(sz*0.04).toFixed(1)}" fill="${col}"/>`;
+  if(opts.roundabout){
+    const rr=sz*0.13,arr=rr*0.55;
+    out+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rr.toFixed(1)}" fill="#fff" stroke="${col}" stroke-width="${(Math.max(1,sz*0.022)).toFixed(1)}"/>`;
+    for(let i=0;i<3;i++){
+      const a0=i*120*Math.PI/180, a1=a0+80*Math.PI/180;
+      const x0=cx+Math.sin(a0)*arr, y0=cy-Math.cos(a0)*arr;
+      const x1=cx+Math.sin(a1)*arr, y1=cy-Math.cos(a1)*arr;
+      out+=`<path d="M${x0.toFixed(1)},${y0.toFixed(1)} A${arr.toFixed(1)},${arr.toFixed(1)} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}" fill="none" stroke="${col}" stroke-width="${(sz*0.018).toFixed(1)}" stroke-linecap="round"/>`;
+    }
+  }
   streets.forEach(st=>{
     if(!st.children||!st.children.length)return;
     const r0=st.angle*Math.PI/180,ox=cx+Math.sin(r0)*Lm,oy=cy-Math.cos(r0)*Lm;
@@ -1252,36 +1645,72 @@ function juncSvgCard(streets, sz) {
   });
   // Track extreme points for bounding box (start with base road dot)
   const pts=[{x:cx,y:cy+Lm},{x:cx,y:cy}];
-  // Draw signs near street tips
+  // Signs stack outward past the street tip (unchanged). Street-text labels sit
+  // alongside the MIDDLE of the road instead, offset just enough to clear the
+  // line, so they read as clearly attached to that specific road.
   const signSz=sz*0.26;
+  const textW=sz*0.52,textH=sz*0.21;
+  const gap=sz*0.02;
+  function drawSignsAt(signsArr,tipx,tipy,angleDeg,offsets){
+    const r=angleDeg*Math.PI/180,px=Math.cos(r),py=Math.sin(r);
+    (signsArr||[]).forEach(sgn=>{
+      const sideSign=sgn.side==='L'?-1:1,key=sgn.side==='L'?'L':'R';
+      const off=offsets[key]+signSz/2;
+      offsets[key]+=signSz+gap;
+      const scx=tipx+px*sideSign*off, scy=tipy+py*sideSign*off;
+      const sx=scx-signSz/2, sy=scy-signSz/2;
+      const inner=signSvg(sgn.id,signSz,sgn.opts||{}).replace(/<\/?svg[^>]*>/g,'');
+      out+=`<g transform="translate(${sx.toFixed(1)},${sy.toFixed(1)})">${inner}</g>`;
+      pts.push({x:sx,y:sy},{x:sx+signSz,y:sy+signSz});
+    });
+  }
+  function drawSymbolsAt(symArr,tipx,tipy,angleDeg,offsets){
+    const r=angleDeg*Math.PI/180,px=Math.cos(r),py=Math.sin(r);
+    (symArr||[]).forEach(sym=>{
+      const sideSign=sym.side==='L'?-1:1,key=sym.side==='L'?'L':'R';
+      const off=offsets[key]+signSz/2;
+      offsets[key]+=signSz+gap;
+      const scx=tipx+px*sideSign*off, scy=tipy+py*sideSign*off;
+      const sx=scx-signSz/2, sy=scy-signSz/2;
+      const inner=symbolSvg(sym.id,signSz).replace(/<\/?svg[^>]*>/g,'');
+      out+=`<g transform="translate(${sx.toFixed(1)},${sy.toFixed(1)})">${inner}</g>`;
+      pts.push({x:sx,y:sy},{x:sx+signSz,y:sy+signSz});
+    });
+  }
+  function drawTextsAlong(textsArr,ocx,ocy,angleDeg,roadLen){
+    const r=angleDeg*Math.PI/180,dx=Math.sin(r),dy=-Math.cos(r),px=Math.cos(r),py=Math.sin(r);
+    const baseX=ocx+dx*roadLen*0.5, baseY=ocy+dy*roadLen*0.5;
+    const sideOffMag=sz*0.03+textH/2;
+    const running={L:0,R:0};
+    (textsArr||[]).forEach(tx=>{
+      const sideSign=tx.side==='L'?-1:1,key=tx.side==='L'?'L':'R';
+      const along=running[key];
+      running[key]+=textW+gap;
+      const acx=baseX+dx*along, acy=baseY+dy*along;
+      const scx=acx+px*sideSign*sideOffMag, scy=acy+py*sideSign*sideOffMag;
+      const sx=scx-textW/2, sy=scy-textH/2;
+      const inner=textLabelSvg(tx.text,textW,textH).replace(/<\/?svg[^>]*>/g,'');
+      out+=`<g transform="translate(${sx.toFixed(1)},${sy.toFixed(1)})">${inner}</g>`;
+      pts.push({x:sx,y:sy},{x:sx+textW,y:sy+textH});
+    });
+  }
   streets.forEach((st,i)=>{
     const r0=st.angle*Math.PI/180;
     const tipx=cx+Math.sin(r0)*Lm,tipy=cy-Math.cos(r0)*Lm;
     pts.push({x:tipx,y:tipy});
-    (st.signs||[]).forEach((sgn,k)=>{
-      const px=Math.cos(r0),py=Math.sin(r0);
-      const off=signSz*(k+0.5);
-      const scx=tipx+px*off, scy=tipy+py*off;
-      const sx=scx-signSz/2, sy=scy-signSz/2;
-      const inner=signSvg(sgn.id,signSz,sgn.opts||{}).replace(/<\/?svg[^>]*>/g,'');
-      out+=`<g transform="translate(${sx.toFixed(1)},${sy.toFixed(1)})">${inner}</g>`;
-      // sign corners
-      pts.push({x:sx,y:sy},{x:sx+signSz,y:sy+signSz});
-    });
+    const offs={L:0,R:0};
+    drawSignsAt(st.signs,tipx,tipy,st.angle,offs);
+    drawSymbolsAt(st.symbols,tipx,tipy,st.angle,offs);
+    drawTextsAlong(st.texts,cx,cy,st.angle,Lm);
     (st.children||[]).forEach(ch=>{
       const rc=ch.angle*Math.PI/180;
       const ox=cx+Math.sin(r0)*Lm,oy=cy-Math.cos(r0)*Lm;
       const ctipx=ox+Math.sin(rc)*Lc, ctipy=oy-Math.cos(rc)*Lc;
       pts.push({x:ctipx,y:ctipy});
-      (ch.signs||[]).forEach((sgn,k)=>{
-        const px=Math.cos(rc),py=Math.sin(rc);
-        const off=signSz*(k+0.5);
-        const scx=ctipx+px*off, scy=ctipy+py*off;
-        const sx=scx-signSz/2, sy=scy-signSz/2;
-        const inner=signSvg(sgn.id,signSz,sgn.opts||{}).replace(/<\/?svg[^>]*>/g,'');
-        out+=`<g transform="translate(${sx.toFixed(1)},${sy.toFixed(1)})">${inner}</g>`;
-        pts.push({x:sx,y:sy},{x:sx+signSz,y:sy+signSz});
-      });
+      const offsC={L:0,R:0};
+      drawSignsAt(ch.signs,ctipx,ctipy,ch.angle,offsC);
+      drawSymbolsAt(ch.symbols,ctipx,ctipy,ch.angle,offsC);
+      drawTextsAlong(ch.texts,ox,oy,ch.angle,Lc);
     });
   });
   // Compute bounding box and scale content to fit within sz with margin
@@ -1371,8 +1800,9 @@ function drawJuncCanvas(){
   streets.forEach((st,i)=>{
     const r0=st.angle*(Math.PI/180);
     const dx=CANVAS_CX+Math.sin(r0)*roadLen,dy=CANVAS_CY-Math.cos(r0)*roadLen;
-    ctx.strokeStyle=lc;ctx.lineWidth=3;ctx.setLineDash([]);
+    ctx.strokeStyle=lc;ctx.lineWidth=3;ctx.setLineDash(st.isDashedLine?[7,5]:[]);
     ctx.beginPath();ctx.moveTo(CANVAS_CX,CANVAS_CY);ctx.lineTo(dx,dy);ctx.stroke();
+    ctx.setLineDash([]);
     if(st.isArrow)_drawArrow(ctx,CANVAS_CX,CANVAS_CY,st.angle,roadLen);
     (st.children||[]).forEach((ch,j)=>{
       const r1=ch.angle*(Math.PI/180);
@@ -1396,7 +1826,21 @@ function drawJuncCanvas(){
     ctx.fillStyle=isHover?'#378ADD':'#888';ctx.strokeStyle='white';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.arc(dx,dy,7,0,Math.PI*2);ctx.fill();ctx.stroke();
   });
-  ctx.fillStyle=lc;ctx.setLineDash([]);ctx.beginPath();ctx.arc(CANVAS_CX,CANVAS_CY,4,0,Math.PI*2);ctx.fill();
+  if(s.junc_roundabout){
+    const rr=Math.max(10,roadLen*0.16),arr=rr*0.55;
+    ctx.setLineDash([]);
+    ctx.fillStyle='#fff';ctx.strokeStyle=lc;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(CANVAS_CX,CANVAS_CY,rr,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.strokeStyle=lc;ctx.lineWidth=1.3;
+    for(let i=0;i<3;i++){
+      const a0=i*120*(Math.PI/180),a1=a0+80*(Math.PI/180);
+      ctx.beginPath();
+      ctx.arc(CANVAS_CX,CANVAS_CY,arr,a0-Math.PI/2,a1-Math.PI/2);
+      ctx.stroke();
+    }
+  } else {
+    ctx.fillStyle=lc;ctx.setLineDash([]);ctx.beginPath();ctx.arc(CANVAS_CX,CANVAS_CY,4,0,Math.PI*2);ctx.fill();
+  }
 }
 
 function allDotsScaled(streets,roadLen){
@@ -1459,23 +1903,41 @@ function renderStreetList(){
 }
 function toggleArrow(i,v){if(sel===null)return;steps[sel].junc_streets[i].isArrow=v;render();drawJuncCanvas();renderStreetList();}
 function toggleChildArrow(pi,ci,v){if(sel===null)return;steps[sel].junc_streets[pi].children[ci].isArrow=v;render();drawJuncCanvas();renderStreetList();}
+function toggleDashedLine(i,v){if(sel===null)return;steps[sel].junc_streets[i].isDashedLine=v;render();drawJuncCanvas();renderStreetList();}
 function delStreet(i){if(sel===null)return;steps[sel].junc_streets.splice(i,1);render();renderD();}
 function delChild(pi,ci){if(sel===null)return;steps[sel].junc_streets[pi].children.splice(ci,1);render();renderD();}
+// Find the angle sitting in the middle of the largest available gap between
+// a set of existing (fixed) angles — so a newly added street always lands as
+// far as possible from its neighbours instead of getting squeezed into a
+// narrow leftover space. Uses the FULL circle, not just one side.
+function widestGapAngle(existingAngles){
+  const norm=a=>((a%360)+360)%360;
+  const sorted=existingAngles.map(norm).sort((a,b)=>a-b);
+  const n=sorted.length;
+  if(n===0)return 0;
+  if(n===1)return norm(sorted[0]+180);
+  let bestGap=-1,bestMid=sorted[0];
+  for(let i=0;i<n;i++){
+    const a=sorted[i],b=sorted[(i+1)%n];
+    const gap=((b-a)+360)%360;
+    if(gap>bestGap){bestGap=gap;bestMid=norm(a+gap/2);}
+  }
+  return norm(Math.round(bestMid/15)*15);
+}
 function addChild(pi){
   if(sel===null)return;
   const parent=steps[sel].junc_streets[pi];
   if(!parent.children)parent.children=[];
-  const ex=parent.children.map(c=>c.angle);
-  const cands=[45,315,90,270,0,135,225,30,60,120,150,210,240,300,330];
-  let best=45;for(const c of cands){if(!ex.some(a=>Math.abs(a-c)<20)){best=c;break;}}
+  const backAngle=(parent.angle+180)%360;
+  const existing=[backAngle,...parent.children.map(c=>c.angle)];
+  const best=widestGapAngle(existing);
   parent.children.push({angle:best,isArrow:false});
   render();renderD();setTimeout(()=>{setupJunc();drawJuncCanvas();renderStreetList();},50);
 }
 function addStreet(){
   if(sel===null)return;
-  const ex=steps[sel].junc_streets.map(s=>s.angle);
-  const cands=[0,45,90,135,225,270,315,30,60,120,150,210,240,300,330];
-  let best=0;for(const c of cands){if(!ex.some(a=>Math.abs(a-c)<20)&&Math.abs(c-180)>20){best=c;break;}}
+  const existing=[180,...steps[sel].junc_streets.map(s=>s.angle)];
+  const best=widestGapAngle(existing);
   steps[sel].junc_streets.push({angle:best,isArrow:false,children:[]});
   render();renderD();setTimeout(()=>{setupJunc();drawJuncCanvas();renderStreetList();},50);
 }
@@ -1612,8 +2074,7 @@ function lanternCard(s,sz){
   let out=`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg" fill="none">`;
   out+=lanternShape(sz,col,lw);
   if(txt){
-    const fs=txt.length>4?sz*0.20:sz*0.28;
-    out+=`<text x="${sz*0.34}" y="${sz*0.72}" text-anchor="middle" font-size="${fs}" font-family="DM Sans,sans-serif" font-weight="700" fill="${col}">${txt}</text>`;
+    out+=svgTextBlock(txt,sz*0.34,sz*0.7,sz*0.56,sz*0.34,sz*0.28,col,"DM Sans,sans-serif",700);
   }
   out+=`</svg>`;
   return out;
@@ -1667,13 +2128,99 @@ function updateClockPreview(){
   if(wrap)wrap.innerHTML=clockCard(steps[sel],120);
 }
 
+// ── Tekst (overige) ───────────────────────────────────────────────────────────
+const TXT_PAD=5;
+function textCard(s,sz){
+  const txt=s.text_content||'';
+  const w=s.card_w||100,h=s.card_h||100;
+  const contentW=Math.max(10,(w-8)-TXT_PAD*2);
+  const disp=txt?txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>'):'<span style="color:#bbb">Tekst…</span>';
+  return`<div class="icon txt-fit" data-w="${w}" data-h="${h}" style="width:${w-8}px;height:${h-8}px;display:flex;align-items:center;justify-content:center;padding:${TXT_PAD}px;overflow:hidden;box-sizing:border-box"><span style="font-family:'DM Sans',sans-serif;font-weight:500;color:#1a1a1a;line-height:1.25;white-space:normal;overflow-wrap:break-word;word-break:normal;width:${contentW}px;max-width:${contentW}px;min-width:0;display:block;text-align:center">${disp}</span></div>`;
+}
+function fitAllText(){
+  document.querySelectorAll('.txt-fit').forEach(box=>{
+    const span=box.querySelector('span');
+    if(!span)return;
+    const w=parseFloat(box.dataset.w||100),h=parseFloat(box.dataset.h||100);
+    const contentW=Math.max(10,(w-8)-TXT_PAD*2);
+    const contentH=Math.max(10,(h-8)-TXT_PAD*2);
+    let fs=Math.min(contentW,contentH)*0.45;
+    span.style.fontSize=fs+'px';
+    let guard=0;
+    while((span.scrollWidth>contentW+0.5||span.scrollHeight>contentH+0.5)&&fs>3&&guard<400){
+      fs-=1;span.style.fontSize=fs+'px';guard++;
+    }
+  });
+}
+// ── Empty (blank resizable placeholder) ────────────────────────────────────────
+function emptyCard(w,h){
+  return`<div class="icon" style="width:${(w||100)-8}px;height:${(h||100)-8}px;border:1px dashed rgba(0,0,0,0.15);border-radius:6px"></div>`;
+}
+function setTextContent(v){if(sel===null)return;steps[sel].text_content=v;render();}
+function toggleTextCount(){if(sel===null)return;steps[sel].text_counts=!steps[sel].text_counts;render();renderD();}
+// SVG version for PDF export — measures exactly like the on-screen card
+function textCardSvg(s,sz){
+  const txt=s.text_content||'';
+  const w=s.card_w||100,h=s.card_h||100;
+  const ratio=h/w;
+  const vw=sz, vh=sz*ratio;
+  const scale=vw/w; // scale from screen px to export px
+  const esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  if(!txt) return`<svg width="${vw}" height="${vh}" viewBox="0 0 ${vw} ${vh}" xmlns="http://www.w3.org/2000/svg"></svg>`;
+
+  const contentW=Math.max(10,(w-8)-TXT_PAD*2);
+  const contentH=Math.max(10,(h-8)-TXT_PAD*2);
+
+  // Build a hidden element identical in width to the on-screen text, fit font, then read layout
+  const span=document.createElement('span');
+  span.style.cssText=`position:absolute;left:-9999px;top:0;font-family:Arial,Helvetica,sans-serif;font-weight:500;line-height:1.25;white-space:normal;overflow-wrap:break-word;word-break:normal;width:${contentW}px;max-width:${contentW}px;min-width:0;display:block;text-align:center`;
+  span.innerHTML=esc(txt).replace(/\n/g,'<br>');
+  document.body.appendChild(span);
+
+  let fs=Math.min(contentW,contentH)*0.45;
+  span.style.fontSize=fs+'px';
+  let guard=0;
+  while((span.scrollWidth>contentW+0.5||span.scrollHeight>contentH+0.5)&&fs>3&&guard<400){
+    fs-=1;span.style.fontSize=fs+'px';guard++;
+  }
+
+  // reconstruct wrapped lines using canvas measurement at the final font size
+  const explicit=txt.split('\n');
+  const lines=[];
+  const ctx=document.createElement('canvas').getContext('2d');
+  ctx.font=`500 ${fs}px Arial,Helvetica,sans-serif`;
+  explicit.forEach(para=>{
+    if(para===''){lines.push('');return;}
+    const words=para.split(' ');
+    let cur='';
+    words.forEach(word=>{
+      const test=cur?cur+' '+word:word;
+      if(ctx.measureText(test).width>contentW&&cur){lines.push(cur);cur=word;}
+      else cur=test;
+    });
+    lines.push(cur);
+  });
+  document.body.removeChild(span);
+
+  const fsE=fs*scale;
+  const lineH=fsE*1.25;
+  const totalH=lines.length*lineH;
+  const startY=vh/2-totalH/2+fsE*0.82;
+  let out=`<svg width="${vw}" height="${vh}" viewBox="0 0 ${vw} ${vh}" xmlns="http://www.w3.org/2000/svg">`;
+  lines.forEach((ln,i)=>{
+    out+=`<text x="${vw/2}" y="${(startY+i*lineH).toFixed(1)}" text-anchor="middle" font-size="${fsE.toFixed(1)}" font-family="Arial,Helvetica,sans-serif" font-weight="500" fill="#1a1a1a">${esc(ln)}</text>`;
+  });
+  out+=`</svg>`;
+  return out;
+}
+
 const T=[
   {id:'bolletje',name:'Bolletje Pijltje',cardSvg:s=>bolSvg(s.dir_angle||0,52,'#378ADD',s.dir_dashed),sm:s=>bolSvg(s.dir_angle||0,26,'#378ADD',s.dir_dashed),defaultExtra:()=>({dir_id:'voor',dir_angle:0})},
-  {id:'kruispunt',name:'Kruispunten',cardSvg:s=>juncSvgCard(s.junc_streets||[],52),sm:s=>juncSvgCard(s.junc_streets||[{angle:0,isArrow:true},{angle:90,isArrow:false}],26),defaultExtra:()=>({junc_streets:[{angle:315,isArrow:false},{angle:45,isArrow:true}],junc_sign:null})},
+  {id:'kruispunt',name:'Kruispunten',cardSvg:s=>juncSvgCard(s.junc_streets||[],52,{roundabout:s.junc_roundabout}),sm:s=>juncSvgCard(s.junc_streets||[{angle:0,isArrow:true},{angle:90,isArrow:false}],26),defaultExtra:()=>({junc_streets:[{angle:315,isArrow:false},{angle:45,isArrow:true}],junc_sign:null,junc_roundabout:false})},
   {id:'graden',name:'Graden Schieten',cardSvg:s=>gCard(s.graden||360,s.oost_om,s.west_om),cardSvgIsHtml:true,sm:()=>cSm(0,26),defaultExtra:()=>({graden:360,oost_om:false,west_om:false})},
   {id:'helicopter',name:'Helicopter',cardSvg:s=>heliSvg(s.arrows||[{deg:45},{deg:135}],52),sm:()=>heliSvg([{deg:70},{deg:160}],26),defaultExtra:()=>({arrows:[{deg:45},{deg:135}],card_w:100,card_h:100})},
   {id:'oogjes',name:'Oogjes',cardSvg:s=>eyeForDir(s.eye_dir||'rechts',52),sm:s=>eyeForDir(s.eye_dir||'rechts',26),defaultExtra:()=>({eye_dir:'rechts'})},
-  {id:'stripkaart',name:'Strippenkaart',cardSvg:s=>stripSvg(s.strip_steps||[{left:1,right:0},{left:0,right:1}],52,null),sm:()=>stripSvg([{left:2,right:0},{left:0,right:2},{left:1,right:1}],26,null),defaultExtra:()=>({strip_steps:[{left:1,right:0},{left:0,right:1},{left:1,right:1}],_selStrip:null,card_w:100,card_h:100})},
+  {id:'stripkaart',name:'Strippenkaart',cardSvg:s=>stripSvg(s.strip_steps||[{left:1,right:0},{left:0,right:1}],52,null),sm:()=>stripSvg([{left:1,right:0},{left:0,right:1},{left:1,right:1}],26,null),defaultExtra:()=>({strip_steps:[{left:1,right:0},{left:0,right:1},{left:1,right:1}],_selStrip:null,card_w:100,card_h:100})},
   {id:'foto',name:'Foto route',
     cardSvg:s=>fotoCardSvg(s,52),
     cardSvgIsHtml:true,
@@ -1682,6 +2229,8 @@ const T=[
   {id:'wind',name:'Windrichting',cardSvg:s=>windCard(s,52),cardSvgIsHtml:true,sm:()=>windIcon(26),defaultExtra:()=>({wind_dir:'N',wind_mode:'arrow',wind_steps:0})},
   {id:'lantaarn',name:'Lantaarn',cardSvg:s=>lanternCard(s,52),cardSvgIsHtml:true,sm:()=>lanternIcon(26),defaultExtra:()=>({lantern_text:''})},
   {id:'klokjes',name:'Klokjes',cardSvg:s=>clockCard(s,52),cardSvgIsHtml:true,sm:()=>clockIcon(26),defaultExtra:()=>({clock_mode:'analog',clock_hour:12,clock_min:0})},
+  {id:'tekst',name:'Tekst',group:'overige',cardSvg:s=>textCard(s,52),cardSvgIsHtml:true,sm:()=>`<svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M6 8 H20 M6 8 V6 H20 V8 M13 6 V20 M10 20 H16" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,defaultExtra:()=>({text_content:'',text_counts:false,card_w:100,card_h:100})},
+  {id:'empty',name:'Empty',group:'overige',cardSvg:()=>emptyCard(100,100),cardSvgIsHtml:true,sm:()=>`<svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="4" y="4" width="18" height="18" rx="2" stroke="#888" stroke-width="1.5" stroke-dasharray="3,2"/></svg>`,defaultExtra:()=>({card_w:100,card_h:100})},
 ];
 function fotoFilter(s){
   let f='';
@@ -1734,14 +2283,24 @@ function setTid(id){if(sel===null)return;const td=gT(id),ex=td.defaultExtra?deep
 function delStep(i){steps.splice(i,1);sel=steps.length?Math.min(i,steps.length-1):null;render();renderD();}
 function highlight(){document.querySelectorAll('.card').forEach((el,i)=>el.classList.toggle('sel',i===sel));}
 const MIN_CARD=100, MAX_CARD=400;
+function displayNums(){
+  let n=0;
+  return steps.map(s=>{
+    const counts=!(s.tid==='tekst'&&!s.text_counts)&&s.tid!=='empty';
+    if(counts){n++;return n;}
+    return null;
+  });
+}
 function render(){
   const tc=document.getElementById('total-count');
   if(tc&&document.activeElement!==tc)tc.value=steps.length;
   // always sync strip heights before drawing
   steps.forEach(s=>{if(s.tid==='stripkaart')syncStripHeight(s);});
+  // compute display numbers: text with text_counts=false is skipped
+  const nums=displayNums();
   document.getElementById('grid').innerHTML=steps.map((s,i)=>{
     const td=gT(s.tid);
-    const isResizable=(s.tid==='helicopter'||s.tid==='stripkaart'||s.tid==='foto');
+    const isResizable=(s.tid==='helicopter'||s.tid==='stripkaart'||s.tid==='foto'||s.tid==='tekst'||s.tid==='empty');
     let styleAttr, ico;
     if(isResizable){
       const w=s.card_w||100, h=s.card_h||100;
@@ -1752,6 +2311,10 @@ function render(){
           ?`<img src="${s.foto_data}" style="width:${w-4}px;height:${h-4}px;object-fit:cover;border-radius:4px;display:block;${f?`filter:${f};`:''}${t?`transform:${t};`:''}"/>`
           :`<div style="width:${w-4}px;height:${h-4}px;border:1px dashed #ccc;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px">📷</div>`;
         ico=`<div style="width:${w-4}px;height:${h-4}px">${svgHtml}</div>`;
+      } else if(s.tid==='tekst'){
+        ico=textCard(s,0);
+      } else if(s.tid==='empty'){
+        ico=emptyCard(w,h);
       } else {
         const sz=s.tid==='stripkaart'?Math.max(40,w-16):Math.max(40,Math.min(w,h)-16);
         svgHtml=s.tid==='helicopter'?heliSvg(s.arrows||[{deg:45},{deg:135}],sz):stripSvg(s.strip_steps||[{left:1,right:0}],sz,null);
@@ -1766,9 +2329,11 @@ function render(){
       styleAttr='';
     }
     const handleHtml=isResizable?`<div class="rh-r" onmousedown="startResize(event,${i},'w')"></div><div class="rh-b" onmousedown="startResize(event,${i},'h')"></div><div class="rh-c" onmousedown="startResize(event,${i},'wh')"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="4" y1="13" x2="13" y2="4" stroke="#1a1a1a" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13" x2="13" y2="8" stroke="#1a1a1a" stroke-width="1.8" stroke-linecap="round"/></svg></div>`:'';
-    return`<div class="card${i===sel?' sel':''}${isResizable?' resizable':''}" ${styleAttr} onclick="pick(${i})" id="card-${i}"><span class="num">${i+1}</span>${ico}${handleHtml}</div>`;
+    const numHtml=nums[i]!==null?`<span class="num">${nums[i]}</span>`:'';
+    return`<div class="card${i===sel?' sel':''}${isResizable?' resizable':''}" ${styleAttr} onclick="pick(${i})" id="card-${i}">${numHtml}${ico}${handleHtml}</div>`;
   }).join('');
   highlight();
+  fitAllText();
 }
 
 // ── resize drag ───────────────────────────────────────────────────────────────
@@ -1780,16 +2345,23 @@ function startResize(e,i,axis){
   document.addEventListener('mousemove',doResize);
   document.addEventListener('mouseup',endResize);
 }
+function snapCard(v){return Math.max(100,Math.round((v+10)/110)*110-10);}
 function doResize(e){
   if(_ri===null)return;
+  const s0=steps[_ri];
+  const isTekst=s0.tid==='tekst';
+  // Text width is capped at 6 columns worth (matches the export's max
+  // "steps per row" option — no point going wider than that). Height stays unlimited.
+  const maxW=isTekst?650:MAX_CARD;
+  const maxH=isTekst?4000:MAX_CARD;
   const dw=e.clientX-_rx0,dh=e.clientY-_ry0;
+  // Live drag: follow the mouse smoothly (no grid-snapping yet) so text/box
+  // size updates continuously. Snapping to the 110px grid happens once, on release.
   if(_raxis==='w'||_raxis==='wh'){
-    const raw=Math.max(MIN_CARD,Math.min(MAX_CARD,_rw0+dw));
-    steps[_ri].card_w=Math.max(100,Math.round((raw+10)/110)*110-10);
+    steps[_ri].card_w=Math.max(MIN_CARD,Math.min(maxW,_rw0+dw));
   }
   if(_raxis==='h'||_raxis==='wh'){
-    const raw=Math.max(MIN_CARD,Math.min(MAX_CARD,_rh0+dh));
-    steps[_ri].card_h=Math.max(100,Math.round((raw+10)/110)*110-10);
+    steps[_ri].card_h=Math.max(MIN_CARD,Math.min(maxH,_rh0+dh));
   }
   const s=steps[_ri];
   const w=s.card_w,h=s.card_h;
@@ -1797,23 +2369,49 @@ function doResize(e){
   if(card){
     card.style.width=w+'px';
     card.style.height=h+'px';
-    card.style.gridRow=`span ${h+10}`;
-    card.style.gridColumn=`span ${Math.max(1,Math.round((w+10)/110))}`;
-    const sz=Math.max(40,Math.min(w,h)-16);
+    card.style.gridRow=`span ${Math.ceil(h+10)}`;
+    card.style.gridColumn=`span ${Math.max(1,Math.ceil((w+10)/110))}`;
     const icon=card.querySelector('.icon');
     if(icon){
-      icon.style.width=sz+'px';icon.style.height=sz+'px';
-      if(s.tid==='helicopter')icon.innerHTML=heliSvg(s.arrows||[],sz);
-      else if(s.tid==='stripkaart')icon.innerHTML=stripSvg(s.strip_steps||[],sz,null);
+      if(s.tid==='tekst'){
+        icon.style.width=(w-8)+'px';icon.style.height=(h-8)+'px';
+        icon.dataset.w=w;icon.dataset.h=h;
+        fitAllText();
+      } else if(s.tid==='empty'){
+        icon.style.width=(w-8)+'px';icon.style.height=(h-8)+'px';
+      } else {
+        const sz=Math.max(40,Math.min(w,h)-16);
+        icon.style.width=sz+'px';icon.style.height=sz+'px';
+        if(s.tid==='helicopter')icon.innerHTML=heliSvg(s.arrows||[],sz);
+        else if(s.tid==='stripkaart')icon.innerHTML=stripSvg(s.strip_steps||[],sz,null);
+      }
     }
   }
 }
 function endResize(){
   document.removeEventListener('mousemove',doResize);
   document.removeEventListener('mouseup',endResize);
+  if(_ri!==null){
+    const s=steps[_ri];
+    if(s){
+      // snap to the clean grid size only now that the drag is finished
+      s.card_w=snapCard(s.card_w);
+      s.card_h=snapCard(s.card_h);
+    }
+    render();
+  }
   _ri=null;
 }
-function renderTB(){document.getElementById('techList').innerHTML=T.map(t=>`<div class="topt" onclick="sTB('${t.id}')"><div class="topt-icon">${t.sm?t.sm({}):''}</div><span class="topt-name">${t.name}</span></div>`).join('');}
+function renderTB(){
+  const main=T.filter(t=>t.group!=='overige');
+  const overige=T.filter(t=>t.group==='overige');
+  let html=main.map(t=>`<div class="topt" onclick="sTB('${t.id}')"><div class="topt-icon">${t.sm?t.sm({}):''}</div><span class="topt-name">${t.name}</span></div>`).join('');
+  if(overige.length){
+    html+=`<p class="tb-head" style="margin-top:1.1rem">Overige</p>`;
+    html+=overige.map(t=>`<div class="topt" onclick="sTB('${t.id}')"><div class="topt-icon">${t.sm?t.sm({}):''}</div><span class="topt-name">${t.name}</span></div>`).join('');
+  }
+  document.getElementById('techList').innerHTML=html;
+}
 function sTB(id){if(sel!==null){setTid(id);openDetailDrawer();}}
 function stripPick(si){if(sel===null)return;const s=steps[sel];if(s.tid!=='stripkaart')return;s._selStrip=s._selStrip===si?null:si;render();renderD();}
 function renderD(){
@@ -1825,11 +2423,12 @@ function renderD(){
   if(s.tid==='graden'){const cur=Math.max(1,Math.min(360,s.graden||360)),pad=String(cur).padStart(3,'0'),suf=s.oost_om?' OO':s.west_om?' WO':'';h+=`<p class="sec-label">Graden (001 – 360)</p><input class="g-input" id="gIn" type="text" inputmode="numeric" maxlength="3" value="${pad}" oninput="gInput(this)" onblur="gBlur(this)"/><p style="font-size:13px;font-family:'DM Serif Display',serif;text-align:center;margin:8px 0 12px;color:#1a1a1a">${pad}°${suf}</p><div class="div" style="margin-top:0"></div><button type="button" class="om-btn${s.oost_om?' active':''}" onclick="toggleOO()"><span class="om-check">${TICK_SVG}</span><span class="om-label">Oost om</span><span class="om-tag">OO</span></button><button type="button" class="om-btn${s.west_om?' active':''}" onclick="toggleWO()"><span class="om-check">${TICK_SVG}</span><span class="om-label">West om</span><span class="om-tag">WO</span></button>`;}
   if(s.tid==='helicopter'){const arrows=s.arrows||[];h+=`<div style="display:flex;justify-content:center;margin-bottom:12px">${heliSvg(arrows,100)}</div>`;h+=`<p class="sec-label">Aantal pijlen</p><div class="count-row"><button class="count-btn" onclick="heliRem()">−</button><span class="count-num">${arrows.length}</span><button class="count-btn" onclick="heliAdd()">+</button></div><p class="sec-label">Richting per pijl</p>`;arrows.forEach((arr,i)=>{const pad=String(Math.max(1,Math.min(360,arr.deg||1))).padStart(3,'0');h+=`<div class="heli-arrow-row"><span class="heli-arrow-label">${i+1}</span><input class="heli-deg-input" type="text" inputmode="numeric" maxlength="3" value="${pad}" oninput="hDegIn(this,${i})" onblur="hDegBlur(this,${i})"/><span class="heli-deg-sym">°</span></div>`;});}
   if(s.tid==='oogjes'){const curDir=EYE_DIRS.find(x=>x.id===s.eye_dir)||EYE_DIRS[5];h+=`<div style="display:flex;justify-content:center;margin-bottom:14px">${eyeForDir(s.eye_dir||'rechts',100)}</div>`;h+=`<p class="sec-label">Kijkrichting</p><div class="eye-dir-grid">`;EYE_DIRS.forEach(d=>{const act=s.eye_dir===d.id;h+=`<div class="eye-dir-cell${act?' active':''}" title="${d.label}" onclick="setEyeDir('${d.id}')">${eyeSvg(d.angle,30,!!d.center)}</div>`;});h+=`</div><p style="font-size:11px;color:#aaa;text-align:center">${curDir.label}</p>`;}
-  if(s.tid==='stripkaart'){const ss=s.strip_steps||[],si=s._selStrip;h+=`<p class="sec-label">Aantal stappen</p><div class="count-row"><button class="count-btn" onclick="stripRem()">−</button><input type="text" inputmode="numeric" maxlength="3" value="${ss.length}" style="width:44px;text-align:center;background:var(--color-background-secondary,#f5f4f0);border:0.5px solid rgba(0,0,0,0.12);border-radius:6px;padding:4px 0;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#1a1a1a;outline:none" oninput="stripCountInput(this)" onblur="stripCountBlur(this)" onfocus="this.select()"/><button class="count-btn" onclick="stripAdd()">+</button></div>`;if(si!==null&&si!==undefined&&ss[si]){const st=ss[si];h+=`<p class="sec-label" style="margin-top:4px">Stap ${si+1} — zijlijnen</p>`;h+=`<div class="strip-side-row"><span class="strip-side-label">Links</span><div class="count-row" style="margin-bottom:0"><button class="count-btn" onclick="stripAdj(${si},'left',-1)">−</button><span class="count-num">${st.left}</span><button class="count-btn" onclick="stripAdj(${si},'left',1)">+</button></div></div>`;h+=`<div class="strip-side-row"><span class="strip-side-label">Rechts</span><div class="count-row" style="margin-bottom:0"><button class="count-btn" onclick="stripAdj(${si},'right',-1)">−</button><span class="count-num">${st.right}</span><button class="count-btn" onclick="stripAdj(${si},'right',1)">+</button></div></div>`;}else{h+=`<p style="font-size:11px;color:#aaa;margin-top:4px">Klik op een stap in de preview om zijlijnen aan te passen.</p>`;}h+=`<div style="margin-top:10px">${stripLargeSvg(ss,si)}</div>`;}
+  if(s.tid==='stripkaart'){const ss=s.strip_steps||[],si=s._selStrip;h+=`<p class="sec-label">Aantal stappen</p><div class="count-row"><button class="count-btn" onclick="stripRem()">−</button><input type="text" inputmode="numeric" maxlength="3" value="${ss.length}" style="width:44px;text-align:center;background:var(--color-background-secondary,#f5f4f0);border:0.5px solid rgba(0,0,0,0.12);border-radius:6px;padding:4px 0;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#1a1a1a;outline:none" oninput="stripCountInput(this)" onblur="stripCountBlur(this)" onfocus="this.select()"/><button class="count-btn" onclick="stripAdd()">+</button></div>`;if(si!==null&&si!==undefined&&ss[si]){const st=ss[si];h+=`<p class="sec-label" style="margin-top:4px">Stap ${si+1} — zijlijnen</p>`;h+=`<div class="strip-side-row"><span class="strip-side-label">Links</span><div class="count-row" style="margin-bottom:0"><button class="count-btn" onclick="stripAdj(${si},'left',-1)">−</button><span class="count-num">${st.left}</span><button class="count-btn" onclick="stripAdj(${si},'left',1)">+</button></div></div>`;h+=`<div class="strip-side-row"><span class="strip-side-label">Rechts</span><div class="count-row" style="margin-bottom:0"><button class="count-btn" onclick="stripAdj(${si},'right',-1)">−</button><span class="count-num">${st.right}</span><button class="count-btn" onclick="stripAdj(${si},'right',1)">+</button></div></div>`;if(st.left>0||st.right>0){h+=`<p class="sec-label" style="margin-top:10px">Stippellijn per lijn</p>`;h+=`<div style="display:flex;justify-content:center;margin-bottom:8px">${stripStepDetailSvg(st,120)}</div>`;if(st.left>0){h+=`<p style="font-size:11px;color:#aaa;margin:0 0 4px">Links</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">`;for(let l=0;l<st.left;l++){const on=stripLineDashed(st,'left',l);h+=`<button type="button" onclick="toggleStripDash(${si},'left',${l})" style="width:30px;height:30px;border-radius:7px;border:0.5px solid ${on?'#378ADD':'rgba(0,0,0,0.15)'};background:${on?'#e6f1fb':'#f5f4f0'};color:${on?'#185FA5':'#1a1a1a'};font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer">${l+1}</button>`;}h+=`</div>`;}if(st.right>0){h+=`<p style="font-size:11px;color:#aaa;margin:0 0 4px">Rechts</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">`;for(let r=0;r<st.right;r++){const on=stripLineDashed(st,'right',r);h+=`<button type="button" onclick="toggleStripDash(${si},'right',${r})" style="width:30px;height:30px;border-radius:7px;border:0.5px solid ${on?'#378ADD':'rgba(0,0,0,0.15)'};background:${on?'#e6f1fb':'#f5f4f0'};color:${on?'#185FA5':'#1a1a1a'};font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer">${r+1}</button>`;}h+=`</div>`;}}}else{h+=`<p style="font-size:11px;color:#aaa;margin-top:4px">Klik op een stap in de preview om zijlijnen aan te passen.</p>`;}h+=`<div style="margin-top:10px">${stripLargeSvg(ss,si)}</div>`;}
   if(s.tid==='kruispunt'){
     h+=`<div id="junc-canvas-wrap"><canvas id="junc-canvas" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}"></canvas></div>`;
     h+=`<p style="font-size:11px;color:#aaa;text-align:center;margin-bottom:10px">Sleep een punt om de richting aan te passen</p>`;
     h+=`<div id="street-list"></div><button class="junc-add-btn" onclick="addStreet()">+ straat toevoegen</button>`;
+    h+=`<div class="div"></div><button type="button" onclick="fotoToggle('junc_roundabout')" class="om-btn${s.junc_roundabout?' active':''}"><span class="om-check">${TICK_SVG}</span><span class="om-label">Rotonde in het midden</span></button>`;
     h+=`<div class="div"></div><button type="button" onclick="fotoToggle('junc_sign_on')" class="om-btn${s.junc_sign_on?' active':''}"><span class="om-check">${TICK_SVG}</span><span class="om-label">Verkeersbord</span></button>`;
     if(s.junc_sign_on){
     h+=`<div class="sign-dd${_signDDopen?' open':''}">
@@ -1872,6 +2471,7 @@ function renderD(){
     // Street picker + add button
     if(s.junc_sign){
       const flat=flattenStreets(s.junc_streets||[]);
+      h+=sideToggleHtml(s.junc_sign_side,'setSignSide');
       h+=`<p class="sec-label" style="margin-top:4px">Toevoegen aan straat</p>
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
         <select id="sign-street-sel" style="flex:1;padding:7px 8px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);background:#f5f4f0;font-family:'DM Sans',sans-serif;font-size:12px;color:#1a1a1a;outline:none;cursor:pointer">
@@ -1892,13 +2492,109 @@ function renderD(){
         placed.forEach(p=>{
           h+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#f5f4f0;border-radius:8px;margin-bottom:4px">
             ${signSvg(p.sgn.id,26,p.sgn.opts||{speed:'50',vehicle:'auto'})}
-            <span style="font-size:11px;color:#1a1a1a;flex:1">Straat ${p.label} — ${SIGNS.find(x=>x.id===p.sgn.id)?.name||''}</span>
+            <span style="font-size:11px;color:#1a1a1a;flex:1">Straat ${p.label} (${p.sgn.side==='L'?'L':'R'}) — ${SIGNS.find(x=>x.id===p.sgn.id)?.name||''}</span>
             <button onclick="removeSignFromStreet(${p.streetIdx},${p.childIdx},${p.signIdx})" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:15px;padding:0">×</button>
           </div>`;
         });
       }
     }
     } // end junc_sign_on
+    h+=`<div class="div"></div><button type="button" onclick="fotoToggle('junc_text_on')" class="om-btn${s.junc_text_on?' active':''}"><span class="om-check">${TICK_SVG}</span><span class="om-label">Tekst</span></button>`;
+    if(s.junc_text_on){
+      h+=`<input type="text" maxlength="40" value="${s.junc_text_value||''}" placeholder="Eigen tekst" oninput="setTextValue(this.value)" style="width:100%;background:#f5f4f0;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:#1a1a1a;outline:none;margin-bottom:8px"/>`;
+      h+=sideToggleHtml(s.junc_text_side,'setTextSide');
+      const flatT=flattenStreets(s.junc_streets||[]);
+      h+=`<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+        <select id="text-street-sel" style="flex:1;padding:7px 8px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);background:#f5f4f0;font-family:'DM Sans',sans-serif;font-size:12px;color:#1a1a1a;outline:none;cursor:pointer">
+          ${flatT.map(f=>`<option value="${f.label}">Straat ${f.label}</option>`).join('')}
+        </select>
+        <button type="button" onclick="addTextToStreet()" style="padding:7px 12px;border-radius:8px;border:none;background:#378ADD;color:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap">Toevoegen</button>
+      </div>`;
+      const placedT=[];
+      (s.junc_streets||[]).forEach((st,i)=>{
+        (st.texts||[]).forEach((tx,k)=>placedT.push({label:String(i+1),streetIdx:i,childIdx:null,textIdx:k,tx}));
+        (st.children||[]).forEach((ch,j)=>{
+          (ch.texts||[]).forEach((tx,k)=>placedT.push({label:`${i+1}${String.fromCharCode(65+j)}`,streetIdx:i,childIdx:j,textIdx:k,tx}));
+        });
+      });
+      if(placedT.length){
+        h+=`<p class="sec-label">Geplaatste teksten</p>`;
+        placedT.forEach(p=>{
+          h+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#f5f4f0;border-radius:8px;margin-bottom:4px">
+            <span style="font-size:11px;color:#1a1a1a;flex:1">Straat ${p.label} (${p.tx.side==='L'?'L':'R'}) — "${(p.tx.text||'').replace(/</g,'&lt;')}"</span>
+            <button onclick="removeTextFromStreet(${p.streetIdx},${p.childIdx},${p.textIdx})" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:15px;padding:0">×</button>
+          </div>`;
+        });
+      }
+    }
+    h+=`<div class="div"></div><button type="button" onclick="fotoToggle('junc_dash_on')" class="om-btn${s.junc_dash_on?' active':''}"><span class="om-check">${TICK_SVG}</span><span class="om-label">Stippellijn</span></button>`;
+    if(s.junc_dash_on){
+      const flatD=flattenStreets(s.junc_streets||[]);
+      h+=`<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+        <select id="dash-street-sel" style="flex:1;padding:7px 8px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);background:#f5f4f0;font-family:'DM Sans',sans-serif;font-size:12px;color:#1a1a1a;outline:none;cursor:pointer">
+          ${flatD.map(f=>`<option value="${f.label}">Straat ${f.label}</option>`).join('')}
+        </select>
+        <button type="button" onclick="applyDashToStreet()" style="padding:7px 12px;border-radius:8px;border:none;background:#378ADD;color:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap">Toepassen</button>
+      </div>`;
+      const dashedList=[];
+      (s.junc_streets||[]).forEach((st,i)=>{
+        if(st.isDashedLine)dashedList.push({label:String(i+1),streetIdx:i,childIdx:null});
+        (st.children||[]).forEach((ch,j)=>{
+          if(ch.isDashedLine)dashedList.push({label:`${i+1}${String.fromCharCode(65+j)}`,streetIdx:i,childIdx:j});
+        });
+      });
+      if(dashedList.length){
+        h+=`<p class="sec-label">Straten met stippellijn</p>`;
+        dashedList.forEach(p=>{
+          h+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#f5f4f0;border-radius:8px;margin-bottom:4px">
+            <span style="font-size:11px;color:#1a1a1a;flex:1">Straat ${p.label}</span>
+            <button onclick="removeDashFromStreet(${p.streetIdx},${p.childIdx})" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:15px;padding:0">×</button>
+          </div>`;
+        });
+      } else {
+        h+=`<p style="font-size:11px;color:#aaa">Nog geen straten met stippellijn.</p>`;
+      }
+    }
+    h+=`<div class="div"></div><button type="button" onclick="fotoToggle('junc_symbol_on')" class="om-btn${s.junc_symbol_on?' active':''}"><span class="om-check">${TICK_SVG}</span><span class="om-label">Symbolen</span></button>`;
+    if(s.junc_symbol_on){
+      h+=`<div class="sign-dd${_symbolDDopen?' open':''}">
+        <button type="button" class="sign-dd-btn" onclick="toggleSymbolDD(event)">
+          ${s.junc_symbol?`${symbolSvg(s.junc_symbol,28)}<span class="sign-dd-name">${SYMBOLS.find(x=>x.id===s.junc_symbol)?.name||''}</span>`:`<span class="sign-dd-placeholder">— geen symbool —</span>`}
+          <svg class="sign-dd-caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,4 6,8 10,4"/></svg>
+        </button>
+        <div class="sign-dd-list">
+          <button type="button" class="sign-dd-item" onclick="setSymbol('')"><span class="sign-dd-noicon"></span><span class="sign-dd-itemname" style="color:#aaa">— geen symbool —</span></button>
+          ${SYMBOLS.map(sym=>`<button type="button" class="sign-dd-item${s.junc_symbol===sym.id?' sel':''}" onclick="setSymbol('${sym.id}')">${symbolSvg(sym.id,30)}<span class="sign-dd-itemname">${sym.name}</span></button>`).join('')}
+        </div>
+      </div>`;
+      if(s.junc_symbol){
+        const flatS=flattenStreets(s.junc_streets||[]);
+        h+=sideToggleHtml(s.junc_symbol_side,'setSymbolSide');
+        h+=`<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+          <select id="symbol-street-sel" style="flex:1;padding:7px 8px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);background:#f5f4f0;font-family:'DM Sans',sans-serif;font-size:12px;color:#1a1a1a;outline:none;cursor:pointer">
+            ${flatS.map(f=>`<option value="${f.label}">Straat ${f.label}</option>`).join('')}
+          </select>
+          <button type="button" onclick="addSymbolToStreet()" style="padding:7px 12px;border-radius:8px;border:none;background:#378ADD;color:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap">Toevoegen</button>
+        </div>`;
+      }
+      const placedS=[];
+      (s.junc_streets||[]).forEach((st,i)=>{
+        (st.symbols||[]).forEach((sym,k)=>placedS.push({label:String(i+1),streetIdx:i,childIdx:null,symIdx:k,sym}));
+        (st.children||[]).forEach((ch,j)=>{
+          (ch.symbols||[]).forEach((sym,k)=>placedS.push({label:`${i+1}${String.fromCharCode(65+j)}`,streetIdx:i,childIdx:j,symIdx:k,sym}));
+        });
+      });
+      if(placedS.length){
+        h+=`<p class="sec-label">Geplaatste symbolen</p>`;
+        placedS.forEach(p=>{
+          h+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#f5f4f0;border-radius:8px;margin-bottom:4px">
+            ${symbolSvg(p.sym.id,26)}
+            <span style="font-size:11px;color:#1a1a1a;flex:1">Straat ${p.label} (${p.sym.side==='L'?'L':'R'}) — ${SYMBOLS.find(x=>x.id===p.sym.id)?.name||''}</span>
+            <button onclick="removeSymbolFromStreet(${p.streetIdx},${p.childIdx},${p.symIdx})" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:15px;padding:0">×</button>
+          </div>`;
+        });
+      }
+    }
   }
   if(s.tid==='foto'){
     h+=`<button type="button" onclick="fotoImport()" style="width:100%;padding:9px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);background:#f5f4f0;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#1a1a1a;cursor:pointer;margin-bottom:12px">📷 Foto importeren</button>`;
@@ -1957,6 +2653,16 @@ function renderD(){
       <span style="font-size:11px;color:#aaa">uur : min</span>
     </div>`;
   }
+  if(s.tid==='tekst'){
+    h+=`<p class="sec-label">Tekst</p>
+    <textarea placeholder="Typ hier je tekst…" oninput="setTextContent(this.value)" style="width:100%;min-height:80px;background:#f5f4f0;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:14px;color:#1a1a1a;outline:none;resize:vertical;line-height:1.4">${s.text_content||''}</textarea>`;
+    h+=`<div class="div"></div>`;
+    h+=`<button type="button" onclick="toggleTextCount()" class="om-btn${s.text_counts?' active':''}"><span class="om-check">${TICK_SVG}</span><span class="om-label">Meetellen als stap</span></button>`;
+    h+=`<p style="font-size:11px;color:#aaa">${s.text_counts?'Krijgt een nummer op het blad.':'Geen nummer — telt niet mee.'}</p>`;
+  }
+  if(s.tid==='empty'){
+    h+=`<p class="d-hint">Een leeg vlak dat je kunt schalen. Handig als lege ruimte op het blad. Telt nooit mee als genummerde stap.</p>`;
+  }
   h+=`<div class="div"></div><button class="del-btn" onclick="delStep(${sel})">stap verwijderen</button>`;
   el.innerHTML=h;
   if(s.tid==='kruispunt')setTimeout(()=>{setupJunc();drawJuncCanvas();renderStreetList();},10);
@@ -1973,16 +2679,28 @@ function hDegBlur(inp,i){if(sel===null)return;let n=Math.max(1,Math.min(360,pars
 function setEyeDir(id){if(sel===null)return;steps[sel].eye_dir=id;render();renderD();}
 // Auto-size strippenkaart height to fit all steps
 // Uses same proportions as stripSvg: SH=22*sc where sc=sz/140, sz=card_w
+function snapCardUp(v){return Math.max(100,Math.ceil((v+10)/110)*110-10);}
 function syncStripHeight(s){
   if(s.tid!=='stripkaart')return;
   const w=s.card_w||100;
   const sz=Math.max(40,w-16);
   const sc=sz/140;
-  const SH=22*sc,PT=8*sc,PB=8*sc;
+  const SH=22*sc,TL=22*sc,DR=5*sc,PT=8*sc,PB=8*sc;
+  const {fanReach}=stripFanGeom(SH,TL);
+  const effPT=Math.max(PT,fanReach-SH*0.5+DR*2+SH*0.1);
   const n=s.strip_steps?s.strip_steps.length:1;
-  const svgH=PT+n*SH+PB;
-  // always update to exact needed height — let user resize after
-  s.card_h=Math.max(100,Math.ceil(svgH+16));
+  const svgH=effPT+n*SH+PB;
+  // snap UP to the nearest valid grid unit so the export's placement
+  // math (which assumes every card height is a clean multiple of the
+  // 110px grid) stays perfectly in sync with what's actually rendered
+  const needed=snapCardUp(Math.max(100,Math.ceil(svgH+16)));
+  // Treat this as a MINIMUM, not a forced value: only grow the card to
+  // fit new content (e.g. after adding steps). A height the user set
+  // manually via dragging is never overwritten/shrunk back down, so
+  // manual resize (width or height, independently) actually sticks.
+  if(!s.card_h||needed>s.card_h){
+    s.card_h=needed;
+  }
 }
 function stripCountInput(inp){const raw=inp.value.replace(/\D/g,'');inp.value=raw;}
 function stripCountBlur(inp){
@@ -1997,7 +2715,27 @@ function stripCountBlur(inp){
 }
 function stripAdd(){if(sel===null)return;steps[sel].strip_steps.push({left:0,right:0});syncStripHeight(steps[sel]);render();renderD();}
 function stripRem(){if(sel===null)return;const ss=steps[sel].strip_steps;if(ss.length<=1)return;ss.pop();if(steps[sel]._selStrip>=ss.length)steps[sel]._selStrip=null;syncStripHeight(steps[sel]);render();renderD();}
-function stripAdj(si,side,delta){if(sel===null)return;const ss=steps[sel].strip_steps;ss[si][side]=Math.max(0,Math.min(8,ss[si][side]+delta));render();renderD();}
+function stripAdj(si,side,delta){
+  if(sel===null)return;
+  const ss=steps[sel].strip_steps;
+  const step=ss[si];
+  const newCount=Math.max(0,Math.min(8,step[side]+delta));
+  step[side]=newCount;
+  const dashKey=side+'Dash';
+  if(!step[dashKey])step[dashKey]=[];
+  while(step[dashKey].length<newCount)step[dashKey].push(false);
+  if(step[dashKey].length>newCount)step[dashKey].length=newCount;
+  render();renderD();
+}
+function toggleStripDash(si,side,idx){
+  if(sel===null)return;
+  const step=steps[sel].strip_steps[si];
+  const dashKey=side+'Dash';
+  if(!step[dashKey])step[dashKey]=[];
+  while(step[dashKey].length<=idx)step[dashKey].push(false);
+  step[dashKey][idx]=!step[dashKey][idx];
+  render();renderD();
+}
 
 function setTotalStepsDirect(n){
   n=Math.max(0,Math.min(999,n));
@@ -2061,7 +2799,7 @@ function closeDrawers(){
 }
 window.addEventListener('resize',()=>{if(!isMobile())closeDrawers();});
 
-renderTB();render();renderD();
+renderTB();render();renderD();autoGrowSub();
 document.getElementById('addBtn').addEventListener('click',addStep);
 </script>
 </body>
